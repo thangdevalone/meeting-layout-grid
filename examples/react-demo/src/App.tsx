@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import {
     GridContainer,
     GridItem,
     LayoutMode,
-} from '@meet-layout-grid/react'
+} from '@thangdevalone/meet-layout-grid-react'
 
 // Generate random gradient for participant tiles
 function getRandomGradient(seed: number) {

@@ -4,50 +4,77 @@ A modern, framework-agnostic responsive grid library for meeting/video layouts w
 
 ## Features
 
-- 🎯 **Framework Agnostic Core** - Use with any JavaScript framework
-- ⚛️ **React Support** - Hooks and animated components
-- 💚 **Vue 3 Support** - Composables and SFC components
-- 🅰️ **Angular Support** - Services and directives
-- 🎬 **Motion Animations** - Smooth spring-based transitions
-- 📐 **Multiple Layout Modes** - Gallery, Speaker, Spotlight, Sidebar
-- 📱 **Responsive** - Automatically adapts to container size
-- 🪶 **Lightweight** - Minimal bundle size with tree-shaking support
+- 🎯 **4 Layout Modes**: Gallery, Speaker, Spotlight, Sidebar
+- 🎬 **Smooth Animations**: Built-in Motion spring animations
+- 📱 **Responsive**: Auto-adapts to container dimensions
+- 🔧 **Framework Support**: Vanilla JS, React, Vue 3
+- 📦 **Tree-shakeable**: Only import what you need
+- 💪 **TypeScript**: Full type definitions included
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| `@meet-layout-grid/core` | Core grid calculation logic |
-| `@meet-layout-grid/react` | React hooks and components |
-| `@meet-layout-grid/vue` | Vue 3 composables and components |
-| `@meet-layout-grid/angular` | Angular services and directives |
+| `@thangdevalone/meet-layout-grid-core` | Core grid calculations (vanilla JS) |
+| `@thangdevalone/meet-layout-grid-react` | React hooks and components with Motion |
+| `@thangdevalone/meet-layout-grid-vue` | Vue 3 composables and components with Motion |
 
 ## Installation
 
 ```bash
-# Core only
-npm install @meet-layout-grid/core
+# Core only (vanilla JavaScript)
+npm install @thangdevalone/meet-layout-grid-core
 
 # React
-npm install @meet-layout-grid/react
+npm install @thangdevalone/meet-layout-grid-react
 
-# Vue
-npm install @meet-layout-grid/vue
-
-# Angular
-npm install @meet-layout-grid/angular
+# Vue 3
+npm install @thangdevalone/meet-layout-grid-vue
 ```
 
 ## Quick Start
 
+### Vanilla JavaScript
+
+```javascript
+import { createMeetGrid } from '@thangdevalone/meet-layout-grid-core'
+
+const grid = createMeetGrid({
+  dimensions: { width: 800, height: 600 },
+  count: 6,
+  aspectRatio: '16:9',
+  gap: 8,
+  layoutMode: 'gallery',
+})
+
+// Position each item
+for (let i = 0; i < 6; i++) {
+  const { top, left } = grid.getPosition(i)
+  const { width, height } = grid.getItemDimensions(i)
+  
+  element.style.cssText = `
+    position: absolute;
+    top: ${top}px;
+    left: ${left}px;
+    width: ${width}px;
+    height: ${height}px;
+  `
+}
+```
+
 ### React
 
 ```tsx
-import { GridContainer, GridItem, useMeetGrid } from '@meet-layout-grid/react'
+import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-react'
 
 function MeetingGrid({ participants }) {
   return (
-    <GridContainer aspectRatio="16:9" gap={8}>
+    <GridContainer
+      aspectRatio="16:9"
+      gap={8}
+      layoutMode="gallery"
+      count={participants.length}
+    >
       {participants.map((p, index) => (
         <GridItem key={p.id} index={index}>
           <VideoTile participant={p} />
@@ -58,50 +85,61 @@ function MeetingGrid({ participants }) {
 }
 ```
 
-### Vue
+### Vue 3
 
 ```vue
 <script setup>
-import { GridContainer, GridItem } from '@meet-layout-grid/vue'
+import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-vue'
 </script>
 
 <template>
-  <GridContainer aspect-ratio="16:9" :gap="8">
+  <GridContainer
+    aspect-ratio="16:9"
+    :gap="8"
+    :count="participants.length"
+    layout-mode="gallery"
+  >
     <GridItem
-      v-for="(participant, index) in participants"
-      :key="participant.id"
+      v-for="(p, index) in participants"
+      :key="p.id"
       :index="index"
     >
-      <VideoTile :participant="participant" />
+      <VideoTile :participant="p" />
     </GridItem>
   </GridContainer>
 </template>
 ```
 
-### Angular
-
-```typescript
-import { MeetGridModule } from '@meet-layout-grid/angular'
-
-@Component({
-  template: `
-    <meet-grid-container aspectRatio="16:9" [gap]="8">
-      <div *ngFor="let p of participants; let i = index" [meetGridItem]="i">
-        <app-video-tile [participant]="p" />
-      </div>
-    </meet-grid-container>
-  `
-})
-export class MeetingComponent {}
-```
-
 ## Layout Modes
 
-- **Gallery** - Equal-sized tiles in a responsive grid
-- **Speaker** - Active speaker takes larger space
-- **Spotlight** - Single participant in focus
-- **Sidebar** - Main view with thumbnail strip
+| Mode | Description |
+|------|-------------|
+| `gallery` | Equal-sized tiles in responsive grid |
+| `speaker` | Active speaker takes 65% of space |
+| `spotlight` | Single participant in focus |
+| `sidebar` | Main view with thumbnail strip |
+
+## Animation Presets
+
+- `snappy` - Quick UI interactions
+- `smooth` - Layout changes (default)
+- `gentle` - Subtle effects
+- `bouncy` - Playful effects
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run demos
+cd examples/react-demo && pnpm dev   # http://localhost:5173
+cd examples/vue-demo && pnpm dev     # http://localhost:5174
+```
 
 ## License
 
-MIT
+MIT © ThangDevAlone

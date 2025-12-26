@@ -7,7 +7,7 @@ import {
     createMeetGrid,
     getSpringConfig,
     SpringPreset,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'
 
 // ============================================
 // Composables
@@ -102,7 +102,7 @@ export type {
     MeetGridResult,
     LayoutMode,
     SpringPreset,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'
 
 export {
     createGrid,
@@ -112,4 +112,4 @@ export {
     getSpringConfig,
     springPresets,
     getAspectRatio,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'

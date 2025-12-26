@@ -9,7 +9,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@meet-layout-grid/react": "workspace:*",
+        "@thangdevalone/meet-layout-grid-react": "workspace:*",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },

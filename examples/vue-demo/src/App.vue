@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { GridContainer, GridItem, LayoutMode } from '@meet-layout-grid/vue'
+import { GridContainer, GridItem, LayoutMode } from '@thangdevalone/meet-layout-grid-vue'
 
 // Generate random gradient for participant tiles
 function getRandomGradient(seed: number) {

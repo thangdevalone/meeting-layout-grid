@@ -1,5 +1,5 @@
 {
-    "name": "@meet-layout-grid/react",
+    "name": "@thangdevalone/meet-layout-grid-react",
     "version": "1.0.0",
     "description": "React integration for meet-layout-grid with Motion animations",
     "type": "module",
@@ -47,7 +47,7 @@
         "react-dom": ">=18.0.0"
     },
     "dependencies": {
-        "@meet-layout-grid/core": "workspace:*",
+        "@thangdevalone/meet-layout-grid-core": "workspace:*",
         "motion": "^11.15.0"
     },
     "devDependencies": {

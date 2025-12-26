@@ -1,5 +1,5 @@
 {
-    "name": "@meet-layout-grid/core",
+    "name": "@thangdevalone/meet-layout-grid-core",
     "version": "1.0.0",
     "description": "Core grid calculation logic for meet-layout-grid",
     "type": "module",

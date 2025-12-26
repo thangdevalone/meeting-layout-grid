@@ -1,5 +1,5 @@
 {
-    "name": "@meet-layout-grid/vue",
+    "name": "@thangdevalone/meet-layout-grid-vue",
     "version": "1.0.0",
     "description": "Vue 3 integration for meet-layout-grid with Motion animations",
     "type": "module",
@@ -47,7 +47,7 @@
         "vue": ">=3.3.0"
     },
     "dependencies": {
-        "@meet-layout-grid/core": "workspace:*",
+        "@thangdevalone/meet-layout-grid-core": "workspace:*",
         "@vueuse/core": "^10.7.0",
         "motion-v": "^1.0.0"
     },

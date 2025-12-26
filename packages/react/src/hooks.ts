@@ -6,7 +6,7 @@ import {
     createMeetGrid,
     getSpringConfig,
     SpringPreset,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'
 
 // ============================================
 // Context
@@ -117,7 +117,7 @@ export type {
     MeetGridResult,
     LayoutMode,
     SpringPreset,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'
 
 export {
     createGrid,
@@ -126,4 +126,4 @@ export {
     createGridItemPositioner,
     getSpringConfig,
     springPresets,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'

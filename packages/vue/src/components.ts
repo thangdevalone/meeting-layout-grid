@@ -17,7 +17,7 @@ import {
     LayoutMode,
     SpringPreset,
     getSpringConfig,
-} from '@meet-layout-grid/core'
+} from '@thangdevalone/meet-layout-grid-core'
 import { useGridDimensions, useMeetGrid } from './composables'
 
 // ============================================
