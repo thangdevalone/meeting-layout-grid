@@ -16,6 +16,11 @@ on:
           - minor
           - major
 
+# Prevent concurrent runs
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '8'
@@ -24,6 +29,8 @@ jobs:
   build-and-publish:
     name: Build & Publish
     runs-on: ubuntu-latest
+    # Skip if commit is from bot (avoid infinite loop)
+    if: "!contains(github.event.head_commit.message, 'chore(release)')"
     permissions:
       contents: write
       packages: write
@@ -74,6 +81,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Pull latest changes
+        run: git pull --rebase origin main
 
       - name: Bump version in all packages
         id: bump_version
@@ -127,11 +137,12 @@ jobs:
           
           echo "All packages updated to version $NEW_VERSION"
 
-      - name: Commit version bump
+      - name: Commit and push version bump
         run: |
           git add .
           git commit -m "chore(release): v${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
-          git push
+          git pull --rebase origin main
+          git push origin main
 
       - name: Create Git tag
         run: |
