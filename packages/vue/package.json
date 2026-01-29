@@ -1,6 +1,6 @@
 {
     "name": "@thangdevalone/meet-layout-grid-vue",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Vue 3 integration for meet-layout-grid with Motion animations",
     "type": "module",
     "main": "./dist/index.cjs",
