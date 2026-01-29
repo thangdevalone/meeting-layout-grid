@@ -30,6 +30,7 @@ export type {
     MeetGridResult,
     LayoutMode,
     SpringPreset,
+    PaginationInfo,
 } from '@thangdevalone/meet-layout-grid-core'
 
 export {

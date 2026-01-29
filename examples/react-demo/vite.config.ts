@@ -5,5 +5,6 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 5173,
+        allowedHosts: ["fe-2.modern-ui.org", "fe-vite.modern-ui.org"]
     },
 })

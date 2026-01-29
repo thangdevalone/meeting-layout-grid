@@ -1,23 +1,21 @@
 import {
-    defineComponent,
-    ref,
-    computed,
-    provide,
-    inject,
-    h,
-    PropType,
-    InjectionKey,
-    Ref,
-    ComputedRef,
-    Slot,
-} from 'vue'
-import { Motion } from 'motion-v'
-import {
-    MeetGridResult,
-    LayoutMode,
-    SpringPreset,
     getSpringConfig,
+    LayoutMode,
+    MeetGridResult,
+    SpringPreset,
 } from '@thangdevalone/meet-layout-grid-core'
+import { motion } from 'motion-v'
+import {
+    computed,
+    ComputedRef,
+    defineComponent,
+    h,
+    inject,
+    InjectionKey,
+    PropType,
+    provide,
+    ref
+} from 'vue'
 import { useGridDimensions, useMeetGrid } from './composables'
 
 // ============================================
@@ -70,7 +68,7 @@ export const GridContainer = defineComponent({
         },
         /** Sidebar position */
         sidebarPosition: {
-            type: String as PropType<'left' | 'right' | 'bottom'>,
+            type: String as PropType<'left' | 'right' | 'top' | 'bottom'>,
             default: 'right',
         },
         /** Sidebar ratio (0-1) */
@@ -82,6 +80,26 @@ export const GridContainer = defineComponent({
         springPreset: {
             type: String as PropType<SpringPreset>,
             default: 'smooth',
+        },
+        /** Maximum items per page for pagination (0 = no pagination) */
+        maxItemsPerPage: {
+            type: Number,
+            default: 0,
+        },
+        /** Current page index (0-based) for pagination */
+        currentPage: {
+            type: Number,
+            default: 0,
+        },
+        /** Maximum visible "others" in speaker/sidebar modes (0 = show all) */
+        maxVisibleOthers: {
+            type: Number,
+            default: 0,
+        },
+        /** Current page for "others" in speaker/sidebar modes (0-based) */
+        currentOthersPage: {
+            type: Number,
+            default: 0,
         },
         /** HTML tag to render */
         tag: {
@@ -103,6 +121,10 @@ export const GridContainer = defineComponent({
             speakerIndex: props.speakerIndex,
             sidebarPosition: props.sidebarPosition,
             sidebarRatio: props.sidebarRatio,
+            maxItemsPerPage: props.maxItemsPerPage,
+            currentPage: props.currentPage,
+            maxVisibleOthers: props.maxVisibleOthers,
+            currentOthersPage: props.currentOthersPage,
         }))
 
         const grid = useMeetGrid(gridOptions)
@@ -166,8 +188,12 @@ export const GridItem = defineComponent({
         const position = computed(() => grid.value.getPosition(props.index))
         const dimensions = computed(() => grid.value.getItemDimensions(props.index))
         const isMain = computed(() => grid.value.isMainItem(props.index))
+        const isVisible = computed(() => grid.value.isItemVisible(props.index))
         const isHidden = computed(() => {
-            return grid.value.layoutMode === 'spotlight' && !isMain.value
+            // Hidden if spotlight mode and not main, OR if pagination says not visible
+            if (grid.value.layoutMode === 'spotlight' && !isMain.value) return true
+            if (!isVisible.value) return true
+            return false
         })
 
         const springConfig = getSpringConfig(springPreset)
@@ -204,9 +230,9 @@ export const GridItem = defineComponent({
             }
 
             return h(
-                Motion,
+                motion.div,
                 {
-                    tag: props.tag,
+                    as: props.tag,
                     animate: animateProps,
                     transition: {
                         type: springConfig.type,

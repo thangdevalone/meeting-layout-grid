@@ -34,7 +34,7 @@ export interface GridContainerProps extends Omit<HTMLAttributes<HTMLDivElement>,
     /** Index of active speaker */
     speakerIndex?: number
     /** Sidebar position */
-    sidebarPosition?: 'left' | 'right' | 'bottom'
+    sidebarPosition?: 'left' | 'right' | 'top' | 'bottom'
     /** Sidebar ratio (0-1) */
     sidebarRatio?: number
     /** Spring animation preset */
@@ -43,6 +43,14 @@ export interface GridContainerProps extends Omit<HTMLAttributes<HTMLDivElement>,
     style?: CSSProperties
     /** Additional class name */
     className?: string
+    /** Maximum items per page for pagination (0 = no pagination) */
+    maxItemsPerPage?: number
+    /** Current page index (0-based) for pagination */
+    currentPage?: number
+    /** Maximum visible "others" in speaker/sidebar modes (0 = show all) */
+    maxVisibleOthers?: number
+    /** Current page for "others" in speaker/sidebar modes (0-based) */
+    currentOthersPage?: number
 }
 
 /**
@@ -64,6 +72,10 @@ export const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(
             springPreset = 'smooth',
             style,
             className,
+            maxItemsPerPage,
+            currentPage,
+            maxVisibleOthers,
+            currentOthersPage,
             ...props
         },
         forwardedRef
@@ -85,6 +97,10 @@ export const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(
             speakerIndex,
             sidebarPosition,
             sidebarRatio,
+            maxItemsPerPage,
+            currentPage,
+            maxVisibleOthers,
+            currentOthersPage,
         }
 
         const grid = useMeetGrid(gridOptions)
@@ -149,6 +165,12 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(
             return null
         }
 
+        // Hide items not visible (pagination or mode-based hiding)
+        if (!grid.isItemVisible(index)) {
+            return null
+        }
+
+        // Get position and dimensions directly from grid
         const { top, left } = grid.getPosition(index)
         const { width, height } = grid.getItemDimensions(index)
         const isMain = grid.isMainItem(index)

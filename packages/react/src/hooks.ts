@@ -98,6 +98,10 @@ export function useMeetGrid(options: MeetGridOptions): MeetGridResult {
         options.speakerIndex,
         options.sidebarPosition,
         options.sidebarRatio,
+        options.maxItemsPerPage,
+        options.currentPage,
+        options.maxVisibleOthers,
+        options.currentOthersPage,
     ])
 }
 
