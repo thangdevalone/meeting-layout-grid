@@ -9,7 +9,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@thangdevalone/meet-layout-grid-vue": "*",
+        "@thangdevalone/meet-layout-grid-vue": "^1.0.4",
         "vue": "^3.4.0"
     },
     "devDependencies": {
