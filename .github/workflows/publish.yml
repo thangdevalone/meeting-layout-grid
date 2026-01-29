@@ -83,7 +83,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Pull latest changes
-        run: git pull --rebase origin main
+        run: |
+          git stash --include-untracked || true
+          git pull --rebase origin main
+          git stash pop || true
 
       - name: Bump version in all packages
         id: bump_version
@@ -141,8 +144,7 @@ jobs:
         run: |
           git add .
           git commit -m "chore(release): v${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
-          git pull --rebase origin main
-          git push origin main
+          git push origin main --force-with-lease
 
       - name: Create Git tag
         run: |
