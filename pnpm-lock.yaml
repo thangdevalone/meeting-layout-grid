@@ -27,7 +27,7 @@ importers:
   examples/react-demo:
     dependencies:
       '@thangdevalone/meet-layout-grid-react':
-        specifier: workspace:*
+        specifier: '*'
         version: link:../../packages/react
       react:
         specifier: ^18.2.0
@@ -55,7 +55,7 @@ importers:
   examples/vue-demo:
     dependencies:
       '@thangdevalone/meet-layout-grid-vue':
-        specifier: workspace:*
+        specifier: '*'
         version: link:../../packages/vue
       vue:
         specifier: ^3.4.0
