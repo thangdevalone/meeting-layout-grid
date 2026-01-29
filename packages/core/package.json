@@ -1,6 +1,6 @@
 {
     "name": "@thangdevalone/meet-layout-grid-core",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Core grid calculation logic for meet-layout-grid",
     "type": "module",
     "main": "./dist/index.cjs",
