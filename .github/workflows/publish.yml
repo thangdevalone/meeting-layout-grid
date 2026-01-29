@@ -1,4 +1,4 @@
-name: 📦 Build & Publish to NPM
+name: Build & Publish to NPM
 
 on:
   push:
@@ -26,38 +26,38 @@ env:
 
 jobs:
   build-and-publish:
-    name: 🚀 Build & Publish
+    name: Build & Publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🟢 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: 🔨 Build packages
+      - name: Build packages
         run: pnpm build
 
-      - name: 🔍 Determine version bump type
+      - name: Determine version bump type
         id: version_type
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -74,12 +74,12 @@ jobs:
             fi
           fi
 
-      - name: 📝 Configure Git
+      - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🔼 Bump version in all packages
+      - name: Bump version in all packages
         id: bump_version
         run: |
           VERSION_TYPE=${{ steps.version_type.outputs.type }}
@@ -131,18 +131,18 @@ jobs:
           
           echo "All packages updated to version $NEW_VERSION"
 
-      - name: 📤 Commit version bump
+      - name: Commit version bump
         run: |
           git add .
-          git commit -m "chore(release): v${{ steps.bump_version.outputs.new_version }} 🎉" || echo "No changes to commit"
+          git commit -m "chore(release): v${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
           git push
 
-      - name: 🏷️ Create Git tag
+      - name: Create Git tag
         run: |
           git tag -a "v${{ steps.bump_version.outputs.new_version }}" -m "Release v${{ steps.bump_version.outputs.new_version }}"
           git push origin "v${{ steps.bump_version.outputs.new_version }}"
 
-      - name: 📦 Publish to NPM
+      - name: Publish to NPM
         run: |
           # Publish packages in order (core first, then react and vue)
           cd packages/core && pnpm publish --access public --no-git-checks
@@ -151,13 +151,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: 📝 Create GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.bump_version.outputs.new_version }}
           name: Release v${{ steps.bump_version.outputs.new_version }}
           body: |
-            ## 📦 Meet Layout Grid v${{ steps.bump_version.outputs.new_version }}
+            ## Meet Layout Grid v${{ steps.bump_version.outputs.new_version }}
             
             ### Installation
             
@@ -171,18 +171,14 @@ jobs:
             # Vue 3
             npm install @thangdevalone/meet-layout-grid-vue@${{ steps.bump_version.outputs.new_version }}
             ```
-            
-            ### Changes
-            
-            See [CHANGELOG](https://github.com/thangdevalone/meet-layout-grid/blob/main/CHANGELOG.md) for details.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ✅ Summary
+      - name: Summary
         run: |
-          echo "## 🎉 Published successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "## Published successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** v${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -1,4 +1,4 @@
-name: 🧪 CI - Test & Build
+name: CI - Test & Build
 
 on:
   pull_request:
@@ -15,32 +15,32 @@ env:
 
 jobs:
   test:
-    name: 🧪 Test & Build
+    name: Test & Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🟢 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: 🔨 Build packages
+      - name: Build packages
         run: pnpm build
 
-      - name: 🧪 Run tests
+      - name: Run tests
         run: pnpm test || echo "No tests configured yet"
 
-      - name: ✅ Build successful
+      - name: Build successful
         run: echo "All packages built successfully!"
