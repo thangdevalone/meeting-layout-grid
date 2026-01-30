@@ -8,51 +8,52 @@
 <h1 align="center">Meet Layout Grid</h1>
 
 <p align="center">
-  <strong>A high-performance, framework-agnostic responsive grid library engineered specifically for real-time video meeting layouts with seamless Motion animations.</strong>
+  Responsive grid for video meeting layouts. Works with Vanilla JS, React, and Vue. Uses Motion for layout animations.
 </p>
 
 <p align="center">
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-algorithm">Algorithm</a> •
-  <a href="#-api-reference">API Reference</a> •
-  <a href="#-license">License</a>
+  <a href="#features">Features</a> ·
+  <a href="#packages">Packages</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#algorithm">Algorithm</a> ·
+  <a href="#api-reference">API Reference</a> ·
+  <a href="#license">License</a>
 </p>
 
 <p align="center">
-  <a href="./README.vi.md">🇻🇳 Tiếng Việt</a>
+  <a href="./README.vi.md">Tiếng Việt</a>
 </p>
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
-| 🎯 **4 Layout Modes** | Gallery, Speaker, Spotlight, and Sidebar layouts to cover all meeting scenarios |
-| 🎬 **Spring Animations** | Fluid physics-based transitions powered by Motion (Framer Motion / Motion One) |
-| 📱 **Fully Responsive** | Smart auto-adaptation to any container dimension with optimal tile density |
-| 📄 **Built-in Pagination** | Native support for paginated views, ideal for mobile and high participant counts |
-| 🔧 **Multi-Framework** | First-class support for Vanilla JS, React 18+, and Vue 3 |
-| 🌳 **Tree-Shakeable** | Modular architecture — import only what you need |
-| 💪 **TypeScript** | Complete type definitions out of the box |
+| **4 layout modes** | Gallery, Speaker, Spotlight, Sidebar |
+| **Spring animations** | Motion (Framer Motion / Motion One) for layout transitions |
+| **Responsive** | Adapts to container size; last row can be centered |
+| **Pagination** | Optional pagination for many participants or small screens |
+| **Vanilla / React / Vue** | Core is framework-agnostic; React 18+ and Vue 3 packages available |
+| **Tree-shakeable** | Import only what you use |
+| **TypeScript** | Typed APIs |
 
 ---
 
-## 📦 Packages
+## Packages
 
-This project is organized as a monorepo with three publishable packages:
+Monorepo with three publishable packages:
 
-| Package | Description | Bundle Size |
-|---------|-------------|-------------|
-| [`@thangdevalone/meet-layout-grid-core`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core) | Core grid calculation engine (Vanilla JS/TS) | ~3KB |
-| [`@thangdevalone/meet-layout-grid-react`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react) | React 18+ components with Motion animations | ~8KB |
-| [`@thangdevalone/meet-layout-grid-vue`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue) | Vue 3 components with Motion animations | ~8KB |
+| Package | Description | Size |
+|---------|-------------|------|
+| [`@thangdevalone/meet-layout-grid-core`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core) | Grid math only (Vanilla JS/TS) | ~3KB |
+| [`@thangdevalone/meet-layout-grid-react`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react) | React components + Motion | ~8KB |
+| [`@thangdevalone/meet-layout-grid-vue`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue) | Vue 3 components + Motion | ~8KB |
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ```bash
 # Core only (Vanilla JavaScript/TypeScript)
@@ -65,19 +66,21 @@ npm install @thangdevalone/meet-layout-grid-react
 npm install @thangdevalone/meet-layout-grid-vue
 ```
 
-**With pnpm:**
+With pnpm:
+
 ```bash
 pnpm add @thangdevalone/meet-layout-grid-react
 ```
 
-**With yarn:**
+With yarn:
+
 ```bash
 yarn add @thangdevalone/meet-layout-grid-react
 ```
 
 ---
 
-## 🎮 Quick Start
+## Quick Start
 
 ### Vanilla JavaScript
 
@@ -92,7 +95,6 @@ const grid = createMeetGrid({
   layoutMode: 'gallery',
 })
 
-// Position each item
 for (let i = 0; i < 6; i++) {
   const { top, left } = grid.getPosition(i)
   const { width, height } = grid.getItemDimensions(i)
@@ -159,95 +161,58 @@ const participants = ref([...])
 
 ---
 
-## 🧠 Algorithm
+## Algorithm
 
-The library utilizes sophisticated algorithms to deliver optimal tile sizing and positioning across all layout modes.
+### Tile fitting (Speaker / Sidebar)
 
-### Optimal Tile Fitting Algorithm
-
-For layouts where secondary participants occupy a designated area (such as **Speaker** or **Sidebar** modes), the library employs a **tile area maximization algorithm** to determine the optimal grid configuration:
+For layouts where one area is “main” and the rest is a grid, the library picks the column count that gives the largest tile area in the secondary area:
 
 ```
-Given: N items, target area W × H, aspect ratio R, gap G
+Given: N items, area W × H, aspect ratio R, gap G
 
-For each possible column count C from 1 to N:
-  1. Calculate rows: R = ⌈N / C⌉
-  2. Calculate initial tile width: tileW = (W - (C - 1) × G) / C
-  3. Calculate tile height: tileH = tileW × R
-  4. If total height exceeds H, scale down:
-     - scale = H / (R × tileH + (R - 1) × G)
-     - tileH = tileH × scale
-     - tileW = tileH / R
-  5. Calculate tile area: area = tileW × tileH
+For each column count C from 1 to N:
+  1. rows = ceil(N / C)
+  2. tileW = (W - (C - 1) × G) / C
+  3. tileH = tileW × R
+  4. If total height > H, scale down:
+     scale = H / (rows × tileH + (rows - 1) × G)
+     tileH = tileH × scale, tileW = tileH / R
+  5. area = tileW × tileH
 
-Select the configuration (C, R) that maximizes tile area
+Pick (C, rows) with max area
 ```
 
-### Stateless Position Calculation
+### Position calculation
 
-To prevent rendering artifacts and ensure consistent positioning during React/Vue re-renders, the library uses a **pure function approach** for coordinate calculation:
-
-```typescript
-function getPosition(index: number): Position {
-  const row = Math.floor(index / cols)
-  const col = index % cols
-  
-  // Handle centering for incomplete last row
-  const incompleteRowCols = totalCount % cols
-  const isInLastRow = incompleteRowCols > 0 && 
-    index >= totalCount - incompleteRowCols
-  
-  if (isInLastRow) {
-    // Center items in the last row
-    const lastRowItemCount = incompleteRowCols
-    const colInLastRow = index - (totalCount - incompleteRowCols)
-    const leftOffset = (containerWidth - 
-      (itemWidth * lastRowItemCount + (lastRowItemCount - 1) * gap)) / 2
-    
-    return { 
-      top: initialTop + row * (itemHeight + gap), 
-      left: leftOffset + colInLastRow * (itemWidth + gap) 
-    }
-  }
-  
-  return { 
-    top: initialTop + row * (itemHeight + gap), 
-    left: initialLeft + col * (itemWidth + gap) 
-  }
-}
-```
-
-This approach guarantees that each index always maps to a unique grid coordinate, eliminating overlap issues.
+Positions are computed from index with a pure function so the same index always gets the same coordinates (avoids overlap on re-renders). The last row is centered when it has fewer items than the others.
 
 ---
 
-## 📐 Layout Modes
+## Layout Modes
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `gallery` | Equal-sized tiles in a responsive grid with automatic last-row centering | Default meeting view |
-| `speaker` | Active speaker occupies ~65% of space; others in optimized multi-row grid below | Active speaker scenarios |
-| `spotlight` | Single participant takes up the entire container | Presentation mode |
-| `sidebar` | Main view with thumbnail strip (left/right/bottom positioning) | Screen sharing |
-
----
-
-## 🎨 Animation Presets
-
-The library includes spring-physics animation presets for smooth transitions:
-
-| Preset | Description | Use Case |
-|--------|-------------|----------|
-| `snappy` | High frequency, low damping | Quick UI interactions |
-| `smooth` | Balanced spring settings | Layout changes (default) |
-| `gentle` | Lower velocity, subtle movement | Non-distracting transitions |
-| `bouncy` | Slight overshoot effect | Playful, engaging UIs |
+| Mode | Description |
+|------|-------------|
+| `gallery` | Same-size tiles in a grid; last row centered |
+| `speaker` | One large tile (~65%), rest in a grid below |
+| `spotlight` | One participant only |
+| `sidebar` | Main area + thumbnail strip (left/right/bottom) |
 
 ---
 
-## 📄 Pagination
+## Animation Presets
 
-For mobile devices or meetings with high participant counts, built-in pagination prevents extreme tile shrinking:
+| Preset | Use |
+|--------|-----|
+| `snappy` | Fast UI feedback |
+| `smooth` | Layout changes (default) |
+| `gentle` | Subtle motion |
+| `bouncy` | Slight overshoot |
+
+---
+
+## Pagination
+
+Use `maxItemsPerPage` and `currentPage` so tiles don’t get too small when there are many participants:
 
 ```tsx
 <GridContainer
@@ -260,96 +225,63 @@ For mobile devices or meetings with high participant counts, built-in pagination
 </GridContainer>
 ```
 
-The pagination system provides:
-- **Automatic page calculations** based on `maxItemsPerPage`
-- **Visibility helpers** to determine which items should render
-- **Optimized sizing** — tiles are sized based on items per page, not total count
+Tiles are sized by “items on this page,” not total count.
 
 ---
 
-## 🛠️ Development
+## Development
 
-### Prerequisites
 - Node.js 18+
 - pnpm 8+
 
-### Setup
-
 ```bash
-# Clone the repository
 git clone https://github.com/thangdevalone/meet-layout-grid.git
 cd meet-layout-grid
 
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
 
-# Run React demo
+# Demos
 cd examples/react-demo && pnpm dev   # http://localhost:5173
-
-# Run Vue demo
-cd examples/vue-demo && pnpm dev     # http://localhost:5174
+cd examples/vue-demo && pnpm dev    # http://localhost:5174
 ```
 
-### Project Structure
+Structure:
 
 ```
 meet-layout-grid/
 ├── packages/
-│   ├── core/          # Core grid calculation engine
-│   ├── react/         # React 18+ integration
-│   └── vue/           # Vue 3 integration
+│   ├── core/       # Grid logic
+│   ├── react/      # React bindings
+│   └── vue/        # Vue 3 bindings
 ├── examples/
-│   ├── react-demo/    # React demo application
-│   └── vue-demo/      # Vue demo application
+│   ├── react-demo/
+│   └── vue-demo/
 └── package.json
 ```
 
 ---
 
-## 📖 API Reference
+## API Reference
 
-### Core Package
+### Core: `createMeetGrid(options): MeetGrid`
 
-#### `createMeetGrid(options: MeetGridOptions): MeetGrid`
-
-Creates a grid instance for calculating positions and dimensions.
-
-**Options:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `dimensions` | `{ width: number, height: number }` | Required | Container dimensions |
-| `count` | `number` | Required | Total number of items |
-| `aspectRatio` | `string` | `'16:9'` | Tile aspect ratio (e.g., `'16:9'`, `'4:3'`) |
-| `gap` | `number` | `8` | Gap between tiles in pixels |
-| `layoutMode` | `LayoutMode` | `'gallery'` | Layout mode |
-| `focusIndex` | `number` | `0` | Index of focused item (for speaker/spotlight) |
-| `maxItemsPerPage` | `number` | - | Maximum items per page (enables pagination) |
-| `currentPage` | `number` | `0` | Current page index (0-based) |
-| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Sidebar position (for sidebar mode) |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `dimensions` | `{ width, height }` | required | Container size |
+| `count` | `number` | required | Number of items |
+| `aspectRatio` | `string` | `'16:9'` | Tile aspect ratio |
+| `gap` | `number` | `8` | Gap between tiles (px) |
+| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `speaker` \| `spotlight` \| `sidebar` |
+| `focusIndex` | `number` | `0` | Focused item (speaker/spotlight) |
+| `maxItemsPerPage` | `number` | - | Max items per page |
+| `currentPage` | `number` | `0` | Current page (0-based) |
+| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Sidebar position |
 
 ---
 
-## 📄 License
+## License
 
-**MIT License with Attribution Requirement**
+MIT. You can use it in personal and commercial projects; keep attribution as required in the [LICENSE](./LICENSE) file.
 
-This library is **free to use** for personal and commercial projects. However, you must include proper attribution in your project documentation or about section.
-
-See the [LICENSE](./LICENSE) file for full details.
-
----
-
-## 🙏 Credits
-
-Developed and maintained by **[@thangdevalone](https://github.com/thangdevalone)**.
-
-If you find this library helpful, please consider giving it a ⭐ on GitHub!
-
----
-
-<p align="center">
-  Made with ❤️ for the open-source community
-</p>
+Maintained by [@thangdevalone](https://github.com/thangdevalone).

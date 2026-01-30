@@ -1,6 +1,6 @@
 # @thangdevalone/meet-layout-grid-vue
 
-Vue 3 integration for meet-layout-grid with Motion animations.
+Vue 3 bindings for meet-layout-grid with Motion (motion-v) animations.
 
 ## Installation
 
@@ -8,7 +8,7 @@ Vue 3 integration for meet-layout-grid with Motion animations.
 npm install @thangdevalone/meet-layout-grid-vue
 ```
 
-## Quick Start
+## Quick start
 
 ```vue
 <script setup>
@@ -43,7 +43,7 @@ const participants = ref([
 
 ### `<GridContainer>`
 
-Container component with provide/inject context.
+Wraps the grid and provides layout via provide/inject.
 
 ```vue
 <GridContainer
@@ -64,14 +64,10 @@ Container component with provide/inject context.
 
 ### `<GridItem>`
 
-Animated grid item with motion-v animations.
+One grid cell; uses motion-v for animation.
 
 ```vue
-<GridItem
-  :index="0"
-  :disable-animation="false"
-  tag="div"
->
+<GridItem :index="0" :disable-animation="false" tag="div">
   <slot />
 </GridItem>
 ```
@@ -79,6 +75,8 @@ Animated grid item with motion-v animations.
 ## Composables
 
 ### `useGridDimensions(ref)`
+
+Tracks element size (ResizeObserver).
 
 ```ts
 import { useGridDimensions } from '@thangdevalone/meet-layout-grid-vue'
@@ -90,6 +88,8 @@ const dimensions = useGridDimensions(containerRef)
 ```
 
 ### `useMeetGrid(options)`
+
+Compute grid layout yourself.
 
 ```ts
 import { useMeetGrid } from '@thangdevalone/meet-layout-grid-vue'
@@ -108,18 +108,20 @@ const grid = useMeetGrid(options)
 
 ### `useGridItemPosition(grid, index)`
 
+Get position and size for one item.
+
 ```ts
 import { useGridItemPosition } from '@thangdevalone/meet-layout-grid-vue'
 
 const { position, dimensions, isMain, isHidden } = useGridItemPosition(grid, 0)
 ```
 
-## Layout Modes
+## Layout modes
 
-- **gallery** - Equal-sized tiles
-- **speaker** - Active speaker larger
-- **spotlight** - Single participant focus
-- **sidebar** - Main view + thumbnails
+- **gallery** — Same-size tiles
+- **speaker** — One large tile
+- **spotlight** — Single participant
+- **sidebar** — Main + thumbnails
 
 ## License
 

@@ -1,6 +1,6 @@
 # @thangdevalone/meet-layout-grid-core
 
-Core grid calculation logic for meet-layout-grid library. Zero dependencies, framework-agnostic.
+Grid calculation logic for meet-layout-grid. No dependencies, works with any framework.
 
 ## Installation
 
@@ -13,7 +13,7 @@ npm install @thangdevalone/meet-layout-grid-core
 ```typescript
 import { createMeetGrid, createGrid } from '@thangdevalone/meet-layout-grid-core'
 
-// Basic grid
+// Simple grid
 const grid = createGrid({
   dimensions: { width: 800, height: 600 },
   count: 6,
@@ -24,7 +24,6 @@ const grid = createGrid({
 console.log(`Item size: ${grid.width}x${grid.height}`)
 console.log(`Grid: ${grid.cols} cols, ${grid.rows} rows`)
 
-// Position each item
 for (let i = 0; i < 6; i++) {
   const { top, left } = grid.getPosition(i)
   console.log(`Item ${i}: top=${top}, left=${left}`)
@@ -40,7 +39,6 @@ const meetGrid = createMeetGrid({
   speakerIndex: 0,
 })
 
-// Items may have different sizes in speaker mode
 for (let i = 0; i < 6; i++) {
   const { width, height } = meetGrid.getItemDimensions(i)
   const isMain = meetGrid.isMainItem(i)
@@ -52,43 +50,41 @@ for (let i = 0; i < 6; i++) {
 
 ### `createGrid(options)`
 
-Creates a basic responsive grid.
+Basic responsive grid.
 
 **Options:**
-- `dimensions: { width, height }` - Container dimensions
-- `count: number` - Number of items
-- `aspectRatio: string` - Aspect ratio (e.g., "16:9")
-- `gap: number` - Gap between items in pixels
+- `dimensions: { width, height }` — Container size
+- `count: number` — Number of items
+- `aspectRatio: string` — e.g. `"16:9"`
+- `gap: number` — Gap between items (px)
 
 **Returns:**
-- `width: number` - Item width
-- `height: number` - Item height
-- `rows: number` - Number of rows
-- `cols: number` - Number of columns
-- `getPosition(index): { top, left }` - Position getter
+- `width`, `height` — Item size
+- `rows`, `cols` — Grid shape
+- `getPosition(index): { top, left }`
 
 ### `createMeetGrid(options)`
 
-Creates a meet-style grid with layout modes.
+Meet-style grid with layout modes.
 
-**Additional Options:**
+**Extra options:**
 - `layoutMode: 'gallery' | 'speaker' | 'spotlight' | 'sidebar'`
-- `pinnedIndex?: number` - Index of pinned item
-- `speakerIndex?: number` - Index of active speaker
+- `pinnedIndex?: number`
+- `speakerIndex?: number`
 - `sidebarPosition?: 'left' | 'right' | 'bottom'`
-- `sidebarRatio?: number` - Sidebar width ratio (0-1)
+- `sidebarRatio?: number` — 0–1
 
-**Additional Returns:**
-- `layoutMode: LayoutMode` - Current layout mode
-- `getItemDimensions(index): { width, height }` - Per-item dimensions
-- `isMainItem(index): boolean` - Check if item is featured
+**Extra returns:**
+- `layoutMode`
+- `getItemDimensions(index): { width, height }`
+- `isMainItem(index): boolean`
 
-## Layout Modes
+## Layout modes
 
-- **Gallery** - Equal-sized tiles in a responsive grid
-- **Speaker** - Active speaker takes larger space (65% height)
-- **Spotlight** - Single participant in focus, others hidden
-- **Sidebar** - Main view with thumbnail strip
+- **gallery** — Same-size tiles in a grid
+- **speaker** — One large tile (~65% height), rest below
+- **spotlight** — One participant only
+- **sidebar** — Main area + thumbnail strip
 
 ## License
 

@@ -8,54 +8,55 @@
 <h1 align="center">Meet Layout Grid</h1>
 
 <p align="center">
-  <strong>Thư viện grid responsive hiệu năng cao, độc lập framework, được thiết kế chuyên biệt cho các bố cục cuộc họp video thời gian thực với các hiệu ứng Motion mượt mà.</strong>
+  Grid responsive cho bố cục video meeting. Dùng được với Vanilla JS, React và Vue. Dùng Motion cho animation khi đổi layout.
 </p>
 
 <p align="center">
-  <a href="#-tính-năng">Tính năng</a> •
-  <a href="#-cài-đặt">Cài đặt</a> •
-  <a href="#-bắt-đầu-nhanh">Bắt đầu nhanh</a> •
-  <a href="#-thuật-toán">Thuật toán</a> •
-  <a href="#-api-reference">API Reference</a> •
-  <a href="#-giấy-phép">Giấy phép</a>
+  <a href="#tính-năng">Tính năng</a> ·
+  <a href="#các-gói">Các gói</a> ·
+  <a href="#cài-đặt">Cài đặt</a> ·
+  <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> ·
+  <a href="#thuật-toán">Thuật toán</a> ·
+  <a href="#api-reference">API Reference</a> ·
+  <a href="#giấy-phép">Giấy phép</a>
 </p>
 
 <p align="center">
-  <a href="./README.md">🇬🇧 English</a>
+  <a href="./README.md">English</a>
 </p>
 
 ---
 
-## ✨ Tính năng
+## Tính năng
 
 | Tính năng | Mô tả |
 |-----------|-------|
-| 🎯 **4 Chế độ bố cục** | Gallery, Speaker, Spotlight và Sidebar để đáp ứng mọi kịch bản cuộc họp |
-| 🎬 **Hoạt ảnh Spring** | Chuyển đổi mượt mà dựa trên vật lý bằng Motion (Framer Motion / Motion One) |
-| 📱 **Đáp ứng hoàn toàn** | Tự động thích ứng thông minh với mọi kích thước container với mật độ tile tối ưu |
-| 📄 **Phân trang tích hợp** | Hỗ trợ native cho các view phân trang, lý tưởng cho di động và số lượng người tham gia lớn |
-| 🔧 **Đa Framework** | Hỗ trợ first-class cho Vanilla JS, React 18+ và Vue 3 |
-| 🌳 **Tree-Shakeable** | Kiến trúc module — chỉ import những gì bạn cần |
-| 💪 **TypeScript** | Định nghĩa type đầy đủ sẵn sàng sử dụng |
+| **4 chế độ layout** | Gallery, Speaker, Spotlight, Sidebar |
+| **Animation spring** | Motion (Framer Motion / Motion One) khi chuyển layout |
+| **Responsive** | Tự co giãn theo container; hàng cuối có thể căn giữa |
+| **Phân trang** | Có thể bật phân trang khi nhiều người hoặc màn nhỏ |
+| **Vanilla / React / Vue** | Core không phụ thuộc framework; có gói React 18+ và Vue 3 |
+| **Tree-shakeable** | Chỉ import phần cần dùng |
+| **TypeScript** | Có type đầy đủ |
 
 ---
 
-## 📦 Các gói
+## Các gói
 
-Dự án này được tổ chức dưới dạng monorepo với ba gói có thể publish:
+Monorepo với ba gói có thể publish:
 
-| Gói | Mô tả | Kích thước Bundle |
-|-----|-------|-------------------|
-| [`@thangdevalone/meet-layout-grid-core`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core) | Engine tính toán grid core (Vanilla JS/TS) | ~3KB |
-| [`@thangdevalone/meet-layout-grid-react`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react) | Components React 18+ với hoạt ảnh Motion | ~8KB |
-| [`@thangdevalone/meet-layout-grid-vue`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue) | Components Vue 3 với hoạt ảnh Motion | ~8KB |
+| Gói | Mô tả | Dung lượng |
+|-----|-------|------------|
+| [`@thangdevalone/meet-layout-grid-core`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core) | Chỉ tính toán grid (Vanilla JS/TS) | ~3KB |
+| [`@thangdevalone/meet-layout-grid-react`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react) | Component React + Motion | ~8KB |
+| [`@thangdevalone/meet-layout-grid-vue`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue) | Component Vue 3 + Motion | ~8KB |
 
 ---
 
-## 🚀 Cài đặt
+## Cài đặt
 
 ```bash
-# Chỉ Core (Vanilla JavaScript/TypeScript)
+# Chỉ core (Vanilla JavaScript/TypeScript)
 npm install @thangdevalone/meet-layout-grid-core
 
 # React 18+
@@ -65,19 +66,21 @@ npm install @thangdevalone/meet-layout-grid-react
 npm install @thangdevalone/meet-layout-grid-vue
 ```
 
-**Với pnpm:**
+Dùng pnpm:
+
 ```bash
 pnpm add @thangdevalone/meet-layout-grid-react
 ```
 
-**Với yarn:**
+Dùng yarn:
+
 ```bash
 yarn add @thangdevalone/meet-layout-grid-react
 ```
 
 ---
 
-## 🎮 Bắt đầu nhanh
+## Bắt đầu nhanh
 
 ### Vanilla JavaScript
 
@@ -92,7 +95,6 @@ const grid = createMeetGrid({
   layoutMode: 'gallery',
 })
 
-// Định vị từng item
 for (let i = 0; i < 6; i++) {
   const { top, left } = grid.getPosition(i)
   const { width, height } = grid.getItemDimensions(i)
@@ -159,95 +161,58 @@ const participants = ref([...])
 
 ---
 
-## 🧠 Thuật toán
+## Thuật toán
 
-Thư viện sử dụng các thuật toán tinh vi để mang lại kích thước và định vị tile tối ưu trên tất cả các chế độ bố cục.
+### Chọn kích thước tile (Speaker / Sidebar)
 
-### Thuật toán Tối ưu Kích thước Tile
-
-Đối với các bố cục mà người tham gia phụ chiếm một khu vực được chỉ định (như chế độ **Speaker** hoặc **Sidebar**), thư viện sử dụng **thuật toán tối đa hóa diện tích tile** để xác định cấu hình grid tối ưu:
+Với layout có một vùng “chính” và phần còn lại là grid, thư viện chọn số cột sao cho diện tích tile ở vùng phụ là lớn nhất:
 
 ```
-Cho: N items, vùng mục tiêu W × H, tỷ lệ khung hình R, khoảng cách G
+Cho: N items, vùng W × H, tỉ lệ R, gap G
 
-Với mỗi số cột có thể C từ 1 đến N:
-  1. Tính số hàng: R = ⌈N / C⌉
-  2. Tính chiều rộng tile ban đầu: tileW = (W - (C - 1) × G) / C
-  3. Tính chiều cao tile: tileH = tileW × R
-  4. Nếu tổng chiều cao vượt quá H, scale giảm:
-     - scale = H / (R × tileH + (R - 1) × G)
-     - tileH = tileH × scale
-     - tileW = tileH / R
-  5. Tính diện tích tile: area = tileW × tileH
+Với mỗi số cột C từ 1 đến N:
+  1. rows = ceil(N / C)
+  2. tileW = (W - (C - 1) × G) / C
+  3. tileH = tileW × R
+  4. Nếu tổng chiều cao > H thì scale giảm:
+     scale = H / (rows × tileH + (rows - 1) × G)
+     tileH = tileH × scale, tileW = tileH / R
+  5. area = tileW × tileH
 
-Chọn cấu hình (C, R) có diện tích tile lớn nhất
+Chọn (C, rows) có area lớn nhất
 ```
 
-### Tính toán Vị trí Stateless
+### Tính vị trí
 
-Để ngăn chặn các artifact rendering và đảm bảo định vị nhất quán trong quá trình re-render React/Vue, thư viện sử dụng **phương pháp pure function** cho việc tính toán tọa độ:
-
-```typescript
-function getPosition(index: number): Position {
-  const row = Math.floor(index / cols)
-  const col = index % cols
-  
-  // Xử lý căn giữa cho hàng cuối không đầy đủ
-  const incompleteRowCols = totalCount % cols
-  const isInLastRow = incompleteRowCols > 0 && 
-    index >= totalCount - incompleteRowCols
-  
-  if (isInLastRow) {
-    // Căn giữa các items trong hàng cuối
-    const lastRowItemCount = incompleteRowCols
-    const colInLastRow = index - (totalCount - incompleteRowCols)
-    const leftOffset = (containerWidth - 
-      (itemWidth * lastRowItemCount + (lastRowItemCount - 1) * gap)) / 2
-    
-    return { 
-      top: initialTop + row * (itemHeight + gap), 
-      left: leftOffset + colInLastRow * (itemWidth + gap) 
-    }
-  }
-  
-  return { 
-    top: initialTop + row * (itemHeight + gap), 
-    left: initialLeft + col * (itemWidth + gap) 
-  }
-}
-```
-
-Phương pháp này đảm bảo rằng mỗi index luôn luôn ánh xạ đến một tọa độ grid duy nhất, loại bỏ các vấn đề chồng lấn.
+Vị trí tính từ index bằng hàm thuần, nên cùng index luôn ra cùng tọa độ (tránh lệch khi re-render). Hàng cuối được căn giữa nếu ít ô hơn các hàng trên.
 
 ---
 
-## 📐 Các chế độ Bố cục
+## Các chế độ layout
 
-| Chế độ | Mô tả | Trường hợp sử dụng |
-|--------|-------|-------------------|
-| `gallery` | Các tile kích thước bằng nhau trong grid responsive với tự động căn giữa hàng cuối | View cuộc họp mặc định |
-| `speaker` | Người nói chính chiếm ~65% không gian; những người khác trong grid multi-row tối ưu bên dưới | Kịch bản người nói chính |
-| `spotlight` | Một người tham gia chiếm toàn bộ container | Chế độ thuyết trình |
-| `sidebar` | View chính với dải thumbnail (vị trí trái/phải/dưới) | Chia sẻ màn hình |
-
----
-
-## 🎨 Các Preset Hoạt ảnh
-
-Thư viện bao gồm các preset hoạt ảnh vật lý spring cho các chuyển đổi mượt mà:
-
-| Preset | Mô tả | Trường hợp sử dụng |
-|--------|-------|-------------------|
-| `snappy` | Tần số cao, độ giảm chấn thấp | Tương tác UI nhanh |
-| `smooth` | Cài đặt spring cân bằng | Thay đổi bố cục (mặc định) |
-| `gentle` | Vận tốc thấp hơn, chuyển động tinh tế | Chuyển đổi không gây phân tâm |
-| `bouncy` | Hiệu ứng overshoot nhẹ | UI vui tươi, hấp dẫn |
+| Chế độ | Mô tả |
+|--------|-------|
+| `gallery` | Các ô cùng kích thước; hàng cuối căn giữa |
+| `speaker` | Một ô lớn (~65%), phần còn lại xếp grid bên dưới |
+| `spotlight` | Chỉ một người |
+| `sidebar` | Vùng chính + dải thumbnail (trái/phải/dưới) |
 
 ---
 
-## 📄 Phân trang
+## Preset animation
 
-Đối với thiết bị di động hoặc các cuộc họp có số lượng người tham gia lớn, phân trang tích hợp ngăn chặn việc thu nhỏ tile quá mức:
+| Preset | Dùng khi |
+|--------|----------|
+| `snappy` | Phản hồi nhanh |
+| `smooth` | Đổi layout (mặc định) |
+| `gentle` | Chuyển động nhẹ |
+| `bouncy` | Hơi overshoot |
+
+---
+
+## Phân trang
+
+Dùng `maxItemsPerPage` và `currentPage` để tile không bị thu nhỏ quá khi có nhiều người:
 
 ```tsx
 <GridContainer
@@ -260,96 +225,63 @@ Thư viện bao gồm các preset hoạt ảnh vật lý spring cho các chuyể
 </GridContainer>
 ```
 
-Hệ thống phân trang cung cấp:
-- **Tính toán trang tự động** dựa trên `maxItemsPerPage`
-- **Các helper kiểm tra visibility** để xác định items nào nên render
-- **Kích thước tối ưu** — tiles được định kích thước dựa trên items mỗi trang, không phải tổng số
+Kích thước tile tính theo số item trên trang hiện tại, không phải tổng số.
 
 ---
 
-## 🛠️ Phát triển
+## Phát triển
 
-### Yêu cầu
 - Node.js 18+
 - pnpm 8+
 
-### Cài đặt
-
 ```bash
-# Clone repository
 git clone https://github.com/thangdevalone/meet-layout-grid.git
 cd meet-layout-grid
 
-# Cài đặt dependencies
 pnpm install
-
-# Build tất cả các gói
 pnpm build
 
-# Chạy React demo
+# Chạy demo
 cd examples/react-demo && pnpm dev   # http://localhost:5173
-
-# Chạy Vue demo
 cd examples/vue-demo && pnpm dev     # http://localhost:5174
 ```
 
-### Cấu trúc Dự án
+Cấu trúc:
 
 ```
 meet-layout-grid/
 ├── packages/
-│   ├── core/          # Engine tính toán grid core
-│   ├── react/         # Tích hợp React 18+
-│   └── vue/           # Tích hợp Vue 3
+│   ├── core/       # Logic grid
+│   ├── react/      # React
+│   └── vue/        # Vue 3
 ├── examples/
-│   ├── react-demo/    # Ứng dụng demo React
-│   └── vue-demo/      # Ứng dụng demo Vue
+│   ├── react-demo/
+│   └── vue-demo/
 └── package.json
 ```
 
 ---
 
-## 📖 API Reference
+## API Reference
 
-### Gói Core
+### Core: `createMeetGrid(options): MeetGrid`
 
-#### `createMeetGrid(options: MeetGridOptions): MeetGrid`
-
-Tạo một instance grid để tính toán vị trí và kích thước.
-
-**Options:**
-| Thuộc tính | Kiểu | Mặc định | Mô tả |
-|------------|------|----------|-------|
-| `dimensions` | `{ width: number, height: number }` | Bắt buộc | Kích thước container |
-| `count` | `number` | Bắt buộc | Tổng số items |
-| `aspectRatio` | `string` | `'16:9'` | Tỷ lệ khung hình tile (ví dụ: `'16:9'`, `'4:3'`) |
-| `gap` | `number` | `8` | Khoảng cách giữa các tile tính bằng pixel |
-| `layoutMode` | `LayoutMode` | `'gallery'` | Chế độ bố cục |
-| `focusIndex` | `number` | `0` | Index của item được focus (cho speaker/spotlight) |
-| `maxItemsPerPage` | `number` | - | Số items tối đa mỗi trang (bật phân trang) |
-| `currentPage` | `number` | `0` | Index trang hiện tại (bắt đầu từ 0) |
-| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Vị trí sidebar (cho chế độ sidebar) |
+| Option | Kiểu | Mặc định | Mô tả |
+|--------|------|----------|-------|
+| `dimensions` | `{ width, height }` | bắt buộc | Kích thước container |
+| `count` | `number` | bắt buộc | Số item |
+| `aspectRatio` | `string` | `'16:9'` | Tỉ lệ tile |
+| `gap` | `number` | `8` | Khoảng cách giữa tile (px) |
+| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `speaker` \| `spotlight` \| `sidebar` |
+| `focusIndex` | `number` | `0` | Item focus (speaker/spotlight) |
+| `maxItemsPerPage` | `number` | - | Số item tối đa mỗi trang |
+| `currentPage` | `number` | `0` | Trang hiện tại (0-based) |
+| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Vị trí sidebar |
 
 ---
 
-## 📄 Giấy phép
+## Giấy phép
 
-**Giấy phép MIT với Yêu cầu Ghi nguồn**
+MIT. Dùng được cho dự án cá nhân và thương mại; giữ attribution theo [LICENSE](./LICENSE).
 
-Thư viện này **miễn phí sử dụng** cho các dự án cá nhân và thương mại. Tuy nhiên, bạn phải bao gồm ghi nguồn phù hợp trong tài liệu dự án hoặc phần giới thiệu của bạn.
-
-Xem file [LICENSE](./LICENSE) để biết chi tiết đầy đủ.
-
----
-
-## 🙏 Ghi công
-
-Được phát triển và duy trì bởi **[@thangdevalone](https://github.com/thangdevalone)**.
-
-Nếu bạn thấy thư viện này hữu ích, hãy cân nhắc cho nó một ⭐ trên GitHub!
-
----
-
-<p align="center">
-  Được tạo với ❤️ cho cộng đồng mã nguồn mở
-</p>
+Duy trì bởi [@thangdevalone](https://github.com/thangdevalone).

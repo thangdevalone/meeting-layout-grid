@@ -1,6 +1,6 @@
 # @thangdevalone/meet-layout-grid-react
 
-React integration for meet-layout-grid with Motion animations.
+React bindings for meet-layout-grid with Motion animations.
 
 ## Installation
 
@@ -8,7 +8,7 @@ React integration for meet-layout-grid with Motion animations.
 npm install @thangdevalone/meet-layout-grid-react
 ```
 
-## Quick Start
+## Quick start
 
 ```tsx
 import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-react'
@@ -35,19 +35,19 @@ function MeetingGrid({ participants }) {
 
 ### `<GridContainer>`
 
-Container component that calculates grid layout and provides context.
+Wraps the grid, computes layout, provides context.
 
 ```tsx
 <GridContainer
-  aspectRatio="16:9"        // Item aspect ratio
-  gap={8}                    // Gap between items (px)
-  count={6}                  // Number of items
-  layoutMode="gallery"       // Layout mode
-  speakerIndex={0}           // Active speaker
-  pinnedIndex={0}            // Pinned item
-  sidebarPosition="right"    // Sidebar position
-  sidebarRatio={0.25}        // Sidebar width ratio
-  springPreset="smooth"      // Animation preset
+  aspectRatio="16:9"
+  gap={8}
+  count={6}
+  layoutMode="gallery"
+  speakerIndex={0}
+  pinnedIndex={0}
+  sidebarPosition="right"
+  sidebarRatio={0.25}
+  springPreset="smooth"
 >
   {children}
 </GridContainer>
@@ -55,13 +55,10 @@ Container component that calculates grid layout and provides context.
 
 ### `<GridItem>`
 
-Animated grid item with Motion spring animations.
+One grid cell; uses Motion for layout animation.
 
 ```tsx
-<GridItem
-  index={0}                  // Item index (required)
-  disableAnimation={false}   // Disable animations
->
+<GridItem index={0} disableAnimation={false}>
   {content}
 </GridItem>
 ```
@@ -70,7 +67,7 @@ Animated grid item with Motion spring animations.
 
 ### `useGridDimensions(ref)`
 
-Track element dimensions with ResizeObserver.
+Uses ResizeObserver to track element size.
 
 ```tsx
 const ref = useRef<HTMLDivElement>(null)
@@ -80,7 +77,7 @@ const dimensions = useGridDimensions(ref)
 
 ### `useMeetGrid(options)`
 
-Calculate grid layout manually.
+Compute grid layout yourself.
 
 ```tsx
 const grid = useMeetGrid({
@@ -95,19 +92,19 @@ const { top, left } = grid.getPosition(index)
 const { width, height } = grid.getItemDimensions(index)
 ```
 
-## Layout Modes
+## Layout modes
 
-- **gallery** - Equal-sized tiles
-- **speaker** - Active speaker larger
-- **spotlight** - Single participant focus
-- **sidebar** - Main view + thumbnails
+- **gallery** — Same-size tiles
+- **speaker** — One large tile
+- **spotlight** — Single participant
+- **sidebar** — Main + thumbnails
 
-## Animation Presets
+## Animation presets
 
-- `snappy` - Quick UI interactions
-- `smooth` - Layout changes (default)
-- `gentle` - Subtle effects
-- `bouncy` - Playful effects
+- `snappy` — Fast feedback
+- `smooth` — Layout changes (default)
+- `gentle` — Subtle
+- `bouncy` — Slight overshoot
 
 ## License
 
