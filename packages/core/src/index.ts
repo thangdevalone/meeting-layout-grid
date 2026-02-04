@@ -47,7 +47,9 @@ export interface GridOptions {
 export interface MeetGridOptions extends GridOptions {
     /** Layout mode for the grid */
     layoutMode?: LayoutMode
-    /** Index of pinned item (for speaker/spotlight modes) */
+    /** Index of focused item (for speaker/spotlight modes) - alias for speakerIndex/pinnedIndex */
+    focusIndex?: number
+    /** Index of pinned item (for sidebar/spotlight modes) */
     pinnedIndex?: number
     /** Index of active speaker */
     speakerIndex?: number
@@ -842,7 +844,12 @@ function createEmptyMeetGridResult(layoutMode: LayoutMode): MeetGridResult {
  * This is the main function for creating video conferencing-style layouts.
  */
 export function createMeetGrid(options: MeetGridOptions): MeetGridResult {
-    const { layoutMode = 'gallery', count } = options
+    const { layoutMode = 'gallery', count, focusIndex = 0 } = options
+
+    // Map focusIndex to speakerIndex and pinnedIndex if they're not explicitly provided
+    const speakerIndex = options.speakerIndex ?? focusIndex
+    const pinnedIndex = options.pinnedIndex ?? focusIndex
+    const normalizedOptions = { ...options, speakerIndex, pinnedIndex }
 
     if (count === 0) {
         return createEmptyMeetGridResult(layoutMode)
@@ -850,17 +857,17 @@ export function createMeetGrid(options: MeetGridOptions): MeetGridResult {
 
     switch (layoutMode) {
         case 'spotlight':
-            return createSpotlightGrid(options)
+            return createSpotlightGrid(normalizedOptions)
 
         case 'speaker':
-            return createSpeakerGrid(options)
+            return createSpeakerGrid(normalizedOptions)
 
         case 'sidebar':
-            return createSidebarGrid(options)
+            return createSidebarGrid(normalizedOptions)
 
         case 'gallery':
         default: {
-            const { maxItemsPerPage, currentPage, pinnedIndex, sidebarPosition = 'right' } = options
+            const { maxItemsPerPage, currentPage, sidebarPosition = 'right' } = normalizedOptions
 
             // If there's a pinned participant in gallery, use sidebar layout
             if (pinnedIndex !== undefined && pinnedIndex >= 0 && pinnedIndex < count) {

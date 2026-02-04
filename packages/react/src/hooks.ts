@@ -94,6 +94,7 @@ export function useMeetGrid(options: MeetGridOptions): MeetGridResult {
         options.aspectRatio,
         options.gap,
         options.layoutMode,
+        options.focusIndex,
         options.pinnedIndex,
         options.speakerIndex,
         options.sidebarPosition,
