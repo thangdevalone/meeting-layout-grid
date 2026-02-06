@@ -323,9 +323,11 @@ export function calculateFlexLayout(
         gap: number
         itemAspectRatios?: (ItemAspectRatio | undefined)[]
         preferHorizontal?: boolean
+        /** When true, scale items up to fill container even if they would naturally be smaller */
+        fillContainer?: boolean
     }
 ): FlexItemInfo[] {
-    const { dimensions, count, aspectRatio, gap, itemAspectRatios, preferHorizontal } = options
+    const { dimensions, count, aspectRatio, gap, itemAspectRatios, preferHorizontal, fillContainer = false } = options
 
     if (count === 0 || dimensions.width === 0 || dimensions.height === 0) {
         return []
@@ -355,7 +357,44 @@ export function calculateFlexLayout(
     const containerAspect = containerWidth / containerHeight
     let numRows: number
 
-    if (preferHorizontal) {
+    if (fillContainer) {
+        // When filling container, find the row configuration where scale is closest to 1
+        // This ensures items fill the container as much as possible
+        let bestRows = 1
+        let bestScaleDiff = Infinity
+
+        for (let tryRows = 1; tryRows <= count; tryRows++) {
+            const itemsPerRow = Math.ceil(count / tryRows)
+
+            // Calculate what the row heights would be
+            let testRowHeights: number[] = []
+            let idx = 0
+            for (let r = 0; r < tryRows && idx < count; r++) {
+                let rowSumAspects = 0
+                const rowLength = Math.min(itemsPerRow, count - idx)
+                for (let c = 0; c < rowLength; c++) {
+                    rowSumAspects += aspectValues[idx++]
+                }
+                const gapW = (rowLength - 1) * gap
+                testRowHeights.push((containerWidth - gapW) / rowSumAspects)
+            }
+
+            const totalGapH = (testRowHeights.length - 1) * gap
+            const totalH = testRowHeights.reduce((a, b) => a + b, 0)
+            const scale = (containerHeight - totalGapH) / totalH
+
+            // Find configuration where scale is closest to 1
+            // Prefer slight overflow (scale < 1) over underflow (scale > 1) to avoid empty space
+            const scaleDiff = Math.abs(1 - scale)
+
+            if (scaleDiff < bestScaleDiff) {
+                bestScaleDiff = scaleDiff
+                bestRows = tryRows
+            }
+        }
+
+        numRows = bestRows
+    } else if (preferHorizontal) {
         // For horizontal strips, try single row first
         // If items would be too small or exceed height, use more rows
         const sumAspects = aspectValues.reduce((a, b) => a + b, 0)
@@ -398,20 +437,43 @@ export function calculateFlexLayout(
         rowHeights.push(height)
     }
 
-    // Check if rows fit in container height, scale down if needed
+    // Check if rows fit in container height, scale if needed
     const totalGapHeight = (rows.length - 1) * gap
     const totalNaturalHeight = rowHeights.reduce((a, b) => a + b, 0)
 
-    // Only scale down, never up (to prevent width overflow)
-    const scale = Math.min(1, (containerHeight - totalGapHeight) / totalNaturalHeight)
+    // Scale to fit container
+    const heightBasedScale = (containerHeight - totalGapHeight) / totalNaturalHeight
+
+    let scale: number
+    if (fillContainer) {
+        // When filling container, use heightBasedScale capped at 1.3 to fill vertical space
+        // This allows moderate stretching while preventing excessive horizontal overflow
+        scale = Math.min(1.3, heightBasedScale)
+    } else {
+        scale = Math.min(1, heightBasedScale)
+    }
 
     for (let i = 0; i < rowHeights.length; i++) {
         rowHeights[i] *= scale
     }
 
-    // Calculate total scaled height for vertical centering
+    // Calculate total scaled height for positioning
     const totalScaledHeight = rowHeights.reduce((a, b) => a + b, 0) + totalGapHeight
-    const verticalOffset = (containerHeight - totalScaledHeight) / 2
+
+    // When fillContainer is true, distribute extra vertical space between rows
+    // instead of just centering (which would leave empty space at top and bottom)
+    let verticalOffset = 0
+    let extraGapPerRow = 0
+
+    if (fillContainer && totalScaledHeight < containerHeight && rows.length > 1) {
+        // Distribute extra space as additional gap between rows
+        const extraSpace = containerHeight - totalScaledHeight
+        extraGapPerRow = extraSpace / (rows.length - 1)
+        verticalOffset = 0 // Start from top
+    } else {
+        // Center vertically
+        verticalOffset = (containerHeight - totalScaledHeight) / 2
+    }
 
     // Calculate positions
     const items: FlexItemInfo[] = []
@@ -448,7 +510,7 @@ export function calculateFlexLayout(
             currentLeft += itemWidth + gap
         }
 
-        currentTop += rowHeight + gap
+        currentTop += rowHeight + gap + extraGapPerRow
     }
 
     return items
@@ -919,9 +981,33 @@ function createSidebarGrid(options: MeetGridOptions): MeetGridResult {
         mainHeight = baseSidebarH
     }
 
-    // Main item fills entire area in sidebar layout
-    const mainItemWidth = mainWidth
-    const mainItemHeight = mainHeight
+    // Main item sizing: when flexLayout is true, always fill the area
+    let mainItemWidth: number
+    let mainItemHeight: number
+
+    if (flexLayout) {
+        // flexLayout mode: main item fills entire allocated area
+        mainItemWidth = mainWidth
+        mainItemHeight = mainHeight
+    } else {
+        // Non-flex mode: check if item should fill or maintain aspect ratio
+        const mainItemRatio = itemAspectRatios?.[pinnedIndex]
+        const shouldMainFill = mainItemRatio === 'fill' || mainItemRatio === 'auto'
+
+        if (shouldMainFill) {
+            mainItemWidth = mainWidth
+            mainItemHeight = mainHeight
+        } else {
+            // Maintain aspect ratio within the main area
+            const mainRatio = getAspectRatio(aspectRatio)
+            mainItemWidth = mainWidth
+            mainItemHeight = mainWidth * mainRatio
+            if (mainItemHeight > mainHeight) {
+                mainItemHeight = mainHeight
+                mainItemWidth = mainHeight / mainRatio
+            }
+        }
+    }
 
     const totalOthers = count - 1
     const visibleOthers = maxVisible > 0 ? Math.min(maxVisible, totalOthers) : totalOthers
@@ -968,54 +1054,69 @@ function createSidebarGrid(options: MeetGridOptions): MeetGridResult {
         sidebarOffsetTop = gap
     }
 
-    if (flexLayout && itemAspectRatios && itemsOnPage > 0) {
-        const othersAspectRatios: (ItemAspectRatio | undefined)[] = []
-        const originalIndices: number[] = []
+    if (flexLayout && itemsOnPage > 0) {
+        // When flexLayout is true, use uniform grid that fills entire sidebar space
+        // Individual aspect ratios are handled at content level, not cell level
 
+        let thumbCols: number
+        let thumbRows: number
+
+        if (isVertical) {
+            // Horizontal sidebar (top/bottom): prefer more columns
+            thumbCols = Math.min(itemsOnPage, Math.ceil(Math.sqrt(itemsOnPage * (sidebarWidth / sidebarHeight))))
+            thumbRows = Math.ceil(itemsOnPage / thumbCols)
+        } else {
+            // Vertical sidebar (left/right): prefer more rows
+            thumbRows = Math.min(itemsOnPage, Math.ceil(Math.sqrt(itemsOnPage * (sidebarHeight / sidebarWidth))))
+            thumbCols = Math.ceil(itemsOnPage / thumbRows)
+        }
+
+        // Calculate cell dimensions that fill entire sidebar
+        const thumbWidth = (sidebarWidth - (thumbCols - 1) * gap) / thumbCols
+        const thumbHeight = (sidebarHeight - (thumbRows - 1) * gap) / thumbRows
+
+        // Calculate items in last row for centering/stretching
+        const itemsInLastRow = itemsOnPage - (thumbRows - 1) * thumbCols
+        const lastRowStartIdx = (thumbRows - 1) * thumbCols
+
+        // Last row item width (stretch to fill remaining space)
+        const lastRowThumbWidth = itemsInLastRow < thumbCols && itemsInLastRow > 0
+            ? (sidebarWidth - (itemsInLastRow - 1) * gap) / itemsInLastRow
+            : thumbWidth
+
+        // Last row offset for centering (use 0 since we're stretching)
+        const lastRowOffset = 0
+
+        // Position each item
         let othersIdx = 0
+        let gridIdx = 0
         for (let i = 0; i < count; i++) {
             if (i === pinnedIndex) continue
+
             if (othersIdx >= startOthersIndex && othersIdx < endOthersIndex) {
-                othersAspectRatios.push(itemAspectRatios[i])
-                originalIndices.push(i)
-            }
-            othersIdx++
-        }
+                const row = Math.floor(gridIdx / thumbCols)
+                const col = gridIdx % thumbCols
+                const isLastRow = row === thumbRows - 1 && itemsInLastRow < thumbCols
 
-        // Calculate flex grid layout (multi-row/multi-col, auto-optimized)
-        const flexItems = calculateFlexLayout({
-            dimensions: { width: sidebarWidth + gap * 2, height: sidebarHeight + gap * 2 },
-            count: itemsOnPage,
-            aspectRatio,
-            gap,
-            itemAspectRatios: othersAspectRatios,
-            preferHorizontal: isVertical, // bottom/top sidebars should use horizontal layout
-        })
+                const itemWidth = isLastRow ? lastRowThumbWidth : thumbWidth
+                const colInRow = isLastRow ? gridIdx - lastRowStartIdx : col
 
-        for (let i = 0; i < flexItems.length; i++) {
-            const originalIndex = originalIndices[i]
-            const flexItem = flexItems[i]
-            positions[originalIndex] = {
-                position: {
-                    top: flexItem.top + sidebarOffsetTop - gap,
-                    left: flexItem.left + sidebarOffsetLeft - gap
-                },
-                dimensions: { width: flexItem.width, height: flexItem.height }
-            }
-        }
-
-        // Hidden items (not on current page)
-        let sidebarIndex = 0
-        for (let i = 0; i < count; i++) {
-            if (i === pinnedIndex) continue
-            const isInVisibleRange = sidebarIndex >= startOthersIndex && sidebarIndex < endOthersIndex
-            if (!isInVisibleRange) {
+                positions[i] = {
+                    position: {
+                        top: sidebarOffsetTop + row * (thumbHeight + gap),
+                        left: sidebarOffsetLeft + lastRowOffset + colInRow * (itemWidth + gap)
+                    },
+                    dimensions: { width: itemWidth, height: thumbHeight }
+                }
+                gridIdx++
+            } else {
+                // Hidden items (not on current page)
                 positions[i] = {
                     position: { top: -9999, left: -9999 },
                     dimensions: { width: 0, height: 0 }
                 }
             }
-            sidebarIndex++
+            othersIdx++
         }
     } else {
         // Standard uniform grid for sidebar items
