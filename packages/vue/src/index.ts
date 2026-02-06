@@ -11,6 +11,7 @@ export {
     GridContainer,
     GridItem,
     GridOverlay,
+    FloatingGridItem,
     GridContextKey,
 } from './components'
 
@@ -26,6 +27,8 @@ export type {
     MeetGridResult,
     LayoutMode,
     SpringPreset,
+    ItemAspectRatio,
+    ContentDimensions,
 } from '@thangdevalone/meet-layout-grid-core'
 
 export {

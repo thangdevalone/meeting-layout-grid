@@ -51,7 +51,6 @@ Wraps the grid and provides layout via provide/inject.
   :gap="8"
   :count="6"
   layout-mode="gallery"
-  :speaker-index="0"
   :pinned-index="0"
   sidebar-position="right"
   :sidebar-ratio="0.25"
@@ -100,7 +99,8 @@ const options = computed(() => ({
   count: 6,
   aspectRatio: '16:9',
   gap: 8,
-  layoutMode: 'speaker',
+  layoutMode: 'sidebar',
+  sidebarPosition: 'bottom', // speaker-like layout
 }))
 
 const grid = useMeetGrid(options)
@@ -118,10 +118,9 @@ const { position, dimensions, isMain, isHidden } = useGridItemPosition(grid, 0)
 
 ## Layout modes
 
-- **gallery** — Same-size tiles
-- **speaker** — One large tile
+- **gallery** — Same-size tiles (use `pinnedIndex` to pin a participant)
 - **spotlight** — Single participant
-- **sidebar** — Main + thumbnails
+- **sidebar** — Main + thumbnails (use `sidebarPosition: 'bottom'` for speaker-like layout)
 
 ## License
 

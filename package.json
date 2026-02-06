@@ -5,8 +5,8 @@
     "description": "A modern, framework-agnostic responsive grid library for meeting/video layouts with smooth Motion animations",
     "type": "module",
     "scripts": {
-        "build": "pnpm --filter './packages/*' build",
-        "build:examples": "pnpm --filter './examples/*' build",
+        "build": "pnpm -r --filter \"./packages/**\" build",
+        "build:examples": "pnpm -r --filter \"./examples/**\" build",
         "dev": "pnpm -r --parallel dev",
         "lint": "eslint packages --ext .ts,.tsx,.vue",
         "test": "pnpm -r test",

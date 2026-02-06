@@ -2,7 +2,9 @@ import { useState, useCallback, useRef, useEffect, TouchEvent } from 'react'
 import {
     GridContainer,
     GridItem,
+    FloatingGridItem,
     LayoutMode,
+    ItemAspectRatio,
 } from '@thangdevalone/meet-layout-grid-react'
 
 // Generate random gradient for participant tiles
@@ -12,24 +14,39 @@ function getRandomGradient(seed: number) {
     return `linear-gradient(135deg, hsl(${hue1}, 70%, 45%) 0%, hsl(${hue2}, 70%, 35%) 100%)`
 }
 
-// Initial participants
-function createParticipants(count: number) {
+// Device types with different aspect ratios
+type ParticipantType =
+    | 'desktop'      // 16:9 - standard laptop/desktop
+    | 'phone-916'    // 9:16 - standard phone portrait  
+    | 'phone-919'    // 9:19 - modern tall phones (Samsung, iPhone)
+    | 'phone-34'     // 3:4 - older phones, some tablets
+    | 'tablet'       // 4:3 - iPad and tablets
+
+interface Participant {
+    id: number
+    name: string
+    gradient: string
+    initials: string
+    type: ParticipantType
+}
+
+function createParticipants(count: number): Participant[] {
     return Array.from({ length: count }, (_, i) => ({
         id: i,
         name: i === 0 ? 'You' : `User ${i}`,
         gradient: getRandomGradient(i),
         initials: i === 0 ? 'Y' : `U${i}`,
+        type: 'desktop' as ParticipantType, // Default all to desktop
     }))
 }
 
 const LAYOUT_MODES: { value: LayoutMode; label: string }[] = [
     { value: 'gallery', label: 'Gallery' },
-    { value: 'speaker', label: 'Speaker' },
     { value: 'spotlight', label: 'Spotlight' },
     { value: 'sidebar', label: 'Sidebar' },
 ]
 
-const ASPECT_RATIOS = ['16:9', '4:3', '1:1']
+const ASPECT_RATIOS = ['16:9', '4:3', '1:1', 'Flex']
 
 // Hook for swipe gesture
 function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
@@ -68,13 +85,30 @@ export default function App() {
     const [layoutMode, setLayoutMode] = useState<LayoutMode>('gallery')
     const [aspectRatio, setAspectRatio] = useState('16:9')
     const [gap, setGap] = useState(12)
-    const [speakerIndex, setSpeakerIndex] = useState(0)
-    const [pinnedIndex, setPinnedIndex] = useState<number | null>(null) // For gallery pin mode
+    const [pinnedIndex, setPinnedIndex] = useState<number | null>(null)
     const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right' | 'top' | 'bottom'>('right')
-    const [currentPage, setCurrentPage] = useState(0) // For gallery mode
-    const [othersPage, setOthersPage] = useState(0) // For speaker/sidebar "others"
+    const [currentPage, setCurrentPage] = useState(0)
+    const [othersPage, setOthersPage] = useState(0)
     const [paginationEnabled, setPaginationEnabled] = useState(false)
-    const [itemsPerPage, setItemsPerPage] = useState(4) // Used for all modes
+    const [itemsPerPage, setItemsPerPage] = useState(4)
+    const [maxVisible, setMaxVisible] = useState(0)
+    const [zoomMode, setZoomMode] = useState(false)
+    const [floatingIndex, setFloatingIndex] = useState(0)
+
+    // Responsive floating size
+    const [isMobile, setIsMobile] = useState(window.matchMedia('(max-width: 768px)').matches)
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(max-width: 768px)')
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+        mediaQuery.addEventListener('change', handler)
+        return () => mediaQuery.removeEventListener('change', handler)
+    }, [])
+
+    const floatingSize = isMobile ? { width: 90, height: 120 } : { width: 130, height: 175 }
+
+    // Flex mode is when aspectRatio === 'Flex'
+    const flexibleRatiosEnabled = aspectRatio === 'Flex'
+    const effectiveAspectRatio = flexibleRatiosEnabled ? '16:9' : aspectRatio
 
     // Calculate pagination values
     const othersCount = participants.length - 1
@@ -100,6 +134,15 @@ export default function App() {
         }
     }, [participants.length, galleryTotalPages, othersTotalPages, currentPage, othersPage])
 
+    // Auto-switch floatingIndex when it matches pinnedIndex (so floating window always shows different participant)
+    useEffect(() => {
+        if (pinnedIndex !== null && floatingIndex === pinnedIndex && participants.length > 1) {
+            // Find a different participant to show as floating
+            const newFloatingIndex = pinnedIndex === 0 ? 1 : 0
+            setFloatingIndex(newFloatingIndex)
+        }
+    }, [pinnedIndex, floatingIndex, participants.length])
+
     const addParticipant = useCallback(() => {
         setParticipants((prev) => [
             ...prev,
@@ -108,6 +151,7 @@ export default function App() {
                 name: `User ${prev.length}`,
                 gradient: getRandomGradient(prev.length),
                 initials: `U${prev.length}`,
+                type: 'desktop' as ParticipantType,
             },
         ])
     }, [])
@@ -116,12 +160,47 @@ export default function App() {
         setParticipants((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev))
     }, [])
 
-    // Simulate speaker changing
-    const nextSpeaker = useCallback(() => {
-        setSpeakerIndex((prev) => (prev + 1) % participants.length)
+    const toggleParticipantType = useCallback((index: number) => {
+        setParticipants((prev) => prev.map((p, i) => {
+            if (i !== index) return p
+            const types: ParticipantType[] = ['desktop', 'phone-916', 'phone-919', 'phone-34', 'tablet']
+            const currentIdx = types.indexOf(p.type)
+            const newType = types[(currentIdx + 1) % types.length]
+            return {
+                ...p,
+                type: newType,
+                name: i === 0 ? 'You' : `User ${i}`,
+                initials: i === 0 ? 'Y' : `U${i}`,
+            }
+        }))
+    }, [])
+
+    const getParticipantRatio = useCallback((type: ParticipantType, index: number): ItemAspectRatio | undefined => {
+        if (!flexibleRatiosEnabled) return undefined
+
+        const isMainItem = pinnedIndex !== null && index === pinnedIndex
+        if (isMainItem) return 'fill'
+
+        switch (type) {
+            case 'phone-916': return '9:16'
+            case 'phone-919': return '9:19'
+            case 'phone-34': return '3:4'
+            case 'tablet': return '4:3'
+            default: return '16:9'
+        }
+    }, [flexibleRatiosEnabled, pinnedIndex])
+
+    // Build itemAspectRatios array
+    const itemAspectRatios = flexibleRatiosEnabled
+        ? participants.map((p, i) => getParticipantRatio(p.type, i))
+        : undefined
+
+    // Simulate pinned/focus changing
+    const nextPinned = useCallback(() => {
+        setPinnedIndex((prev) => ((prev ?? 0) + 1) % participants.length)
     }, [participants.length])
 
-    // Unified pagination controls - works for both gallery and speaker/sidebar
+    // Unified pagination controls - works for both gallery and sidebar
     const goToNextPage = useCallback(() => {
         // Gallery with pin uses sidebar layout internally, so use othersPage
         if (layoutMode === 'gallery' && pinnedIndex === null) {
@@ -277,8 +356,30 @@ export default function App() {
                         </div>
                     )}
 
-                    {/* Sidebar position (for speaker/sidebar modes OR gallery with pin) */}
-                    {(layoutMode === 'speaker' || layoutMode === 'sidebar' || (layoutMode === 'gallery' && pinnedIndex !== null)) && (
+                    {/* Max Visible (when not using pagination) */}
+                    {!paginationEnabled && (
+                        <div className="control-group">
+                            <span className="control-label">Max Visible</span>
+                            <div className="control-buttons">
+                                <button
+                                    className="btn btn-icon"
+                                    onClick={() => setMaxVisible((n) => Math.max(0, n - 1))}
+                                >
+                                    −
+                                </button>
+                                <span className="participant-count">{maxVisible === 0 ? 'All' : maxVisible}</span>
+                                <button
+                                    className="btn btn-icon"
+                                    onClick={() => setMaxVisible((n) => n + 1)}
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sidebar position (for sidebar modes OR gallery with pin) */}
+                    {(layoutMode === 'sidebar' || (layoutMode === 'gallery' && pinnedIndex !== null)) && (
                         <div className="control-group">
                             <span className="control-label">Others Position</span>
                             <div className="control-buttons">
@@ -320,13 +421,39 @@ export default function App() {
                         </div>
                     )}
 
-                    {/* Speaker change (for speaker/spotlight modes) */}
-                    {(layoutMode === 'speaker' || layoutMode === 'spotlight' || layoutMode === 'sidebar') && (
+                    {/* Zoom Mode (for gallery with pin) */}
+                    {layoutMode === 'gallery' && pinnedIndex !== null && (
                         <div className="control-group">
-                            <span className="control-label">Active Speaker</span>
+                            <span className="control-label">Zoom</span>
                             <div className="control-buttons">
-                                <button className="btn" onClick={nextSpeaker}>
-                                    Next Speaker →
+                                <button
+                                    className={`btn ${zoomMode ? 'active' : ''}`}
+                                    onClick={() => setZoomMode(!zoomMode)}
+                                >
+                                    {zoomMode ? '🔍 On' : '🔍 Off'}
+                                </button>
+                                {zoomMode && (
+                                    <button
+                                        className="btn"
+                                        onClick={() => setFloatingIndex((prev) =>
+                                            (prev + 1) % participants.length
+                                        )}
+                                        title="Change floating participant"
+                                    >
+                                        Float: {participants[floatingIndex]?.name || 'You'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Pinned change (for spotlight/sidebar modes) */}
+                    {(layoutMode === 'spotlight' || layoutMode === 'sidebar') && (
+                        <div className="control-group">
+                            <span className="control-label">Active Pinned</span>
+                            <div className="control-buttons">
+                                <button className="btn" onClick={nextPinned}>
+                                    Next Pinned →
                                 </button>
                             </div>
                         </div>
@@ -339,61 +466,289 @@ export default function App() {
                 className="grid-wrapper"
                 {...(paginationEnabled ? swipeHandlers : {})}
             >
-                <GridContainer
-                    className="grid-container"
-                    aspectRatio={aspectRatio}
-                    gap={gap}
-                    layoutMode={layoutMode}
-                    speakerIndex={speakerIndex}
-                    pinnedIndex={layoutMode === 'gallery' ? (pinnedIndex ?? undefined) : speakerIndex}
-                    sidebarPosition={sidebarPosition}
-                    count={participants.length}
-                    springPreset="smooth"
-                    maxItemsPerPage={layoutMode === 'gallery' && paginationEnabled && !isGalleryWithPin ? itemsPerPage : 0}
-                    currentPage={layoutMode === 'gallery' && !isGalleryWithPin ? currentPage : 0}
-                    maxVisibleOthers={(layoutMode !== 'gallery' || isGalleryWithPin) && paginationEnabled ? itemsPerPage : 0}
-                    currentOthersPage={(layoutMode !== 'gallery' || isGalleryWithPin) ? othersPage : 0}
-                >
-                    {participants.map((participant, index) => (
-                        <GridItem key={participant.id} index={index}>
-                            <div
-                                className="grid-item"
-                                style={{
-                                    background: participant.gradient,
-                                    width: '100%',
-                                    height: '100%',
-                                }}
+                {/* Zoom Mode: Pinned fills screen, one participant floats */}
+                {zoomMode && isGalleryWithPin && pinnedIndex !== null ? (
+                    <GridContainer
+                        className="grid-container"
+                        aspectRatio="16:9"
+                        gap={0}
+                        layoutMode="spotlight"
+                        pinnedIndex={pinnedIndex}
+                        count={participants.length}
+                        springPreset="smooth"
+                        flexLayout={true}
+                        itemAspectRatios={participants.map(() => 'fill' as ItemAspectRatio)}
+                    >
+                        {/* Pinned participant fills the screen */}
+                        {participants.map((participant, index) => {
+                            // Only render the pinned participant in spotlight
+                            if (index !== pinnedIndex) return null
+
+                            return (
+                                <GridItem key={participant.id} index={index} itemAspectRatio="fill">
+                                    {() => (
+                                        <div
+                                            className="grid-item"
+                                            style={{
+                                                background: participant.gradient,
+                                                width: '100%',
+                                                height: '100%',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                position: 'relative',
+                                            }}
+                                        >
+                                            <div className="item-badge pinned">
+                                                Pinned (Zoom)
+                                            </div>
+                                            <div className="grid-item-content">
+                                                <div
+                                                    className="avatar"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.2)',
+                                                        fontSize: '2rem',
+                                                        width: '80px',
+                                                        height: '80px',
+                                                    }}
+                                                >
+                                                    {participant.initials}
+                                                </div>
+                                                <span
+                                                    className="participant-name"
+                                                    style={{
+                                                        color: '#fff',
+                                                        fontSize: '1.2rem',
+                                                    }}
+                                                >
+                                                    {participant.name}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </GridItem>
+                            )
+                        })}
+
+                        {/* Floating participant (draggable PiP) - inside GridContainer for context */}
+                        {floatingIndex !== pinnedIndex && participants[floatingIndex] && (
+                            <FloatingGridItem
+                                key={`floating-${floatingIndex}`}
+                                width={floatingSize.width}
+                                height={floatingSize.height}
+                                anchor="bottom-right"
+                                initialPosition={{ x: 12, y: 12 }}
+                                borderRadius={isMobile ? 10 : 12}
+                                visible={true}
                             >
-                                {/* Badge for speaker */}
-                                {index === speakerIndex && layoutMode !== 'gallery' && (
-                                    <div className="item-badge speaker">
-                                        🎤 Speaking
+                                <div
+                                    className="grid-item"
+                                    style={{
+                                        background: participants[floatingIndex]?.gradient || '#666',
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: isMobile ? '10px' : '12px',
+                                        border: '2px solid rgba(255,255,255,0.3)',
+                                        position: 'relative',
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            top: 4,
+                                            right: 4,
+                                            fontSize: isMobile ? '0.55rem' : '0.7rem',
+                                            background: 'rgba(0,0,0,0.5)',
+                                            padding: isMobile ? '2px 4px' : '2px 6px',
+                                            borderRadius: '4px',
+                                            color: '#fff',
+                                        }}
+                                    >
+                                        {isMobile ? 'Drag' : 'Drag me'}
                                     </div>
-                                )}
-
-                                {/* Badge for pinned in gallery */}
-                                {index === pinnedIndex && layoutMode === 'gallery' && (
-                                    <div className="item-badge pinned">
-                                        📌 Pinned
-                                    </div>
-                                )}
-
-                                <div className="grid-item-content">
                                     <div
                                         className="avatar"
-                                        style={{ background: 'rgba(255,255,255,0.2)' }}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.2)',
+                                            width: isMobile ? '32px' : '44px',
+                                            height: isMobile ? '32px' : '44px',
+                                            fontSize: isMobile ? '0.75rem' : '1rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '50%',
+                                        }}
                                     >
-                                        {participant.initials}
+                                        {participants[floatingIndex]?.initials || 'Y'}
                                     </div>
-                                    <span className="participant-name">{participant.name}</span>
+                                    <span
+                                        className="participant-name"
+                                        style={{ fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: isMobile ? '3px' : '6px', color: '#fff' }}
+                                    >
+                                        {participants[floatingIndex]?.name || 'You'}
+                                    </span>
                                 </div>
-                            </div>
-                        </GridItem>
-                    ))}
-                </GridContainer>
+                            </FloatingGridItem>
+                        )}
+                    </GridContainer>
+                ) : (
+                    /* Normal Mode: Standard grid layout */
+                    <GridContainer
+                        className="grid-container"
+                        aspectRatio={effectiveAspectRatio}
+                        gap={gap}
+                        layoutMode={layoutMode}
+                        pinnedIndex={pinnedIndex ?? undefined}
+                        sidebarPosition={sidebarPosition}
+                        count={participants.length}
+                        springPreset="smooth"
+                        maxItemsPerPage={paginationEnabled && !isGalleryWithPin && layoutMode === 'gallery' ? itemsPerPage : 0}
+                        currentPage={currentPage}
+                        maxVisible={paginationEnabled && (layoutMode === 'sidebar' || isGalleryWithPin) ? itemsPerPage : (!paginationEnabled ? maxVisible : 0)}
+                        currentVisiblePage={othersPage}
+                        itemAspectRatios={itemAspectRatios}
+                        flexLayout={flexibleRatiosEnabled}
+                    >
+                        {participants.map((participant, index) => (
+                            <GridItem key={participant.id} index={index} itemAspectRatio={getParticipantRatio(participant.type, index)}>
+                                {({ isLastVisibleOther, hiddenCount }) => {
+                                    // If this is the last visible item AND there are hidden items,
+                                    // show ONLY the "+X" indicator (no participant content)
+                                    // BUT only when pagination is OFF - with pagination ON, users can navigate
+                                    if (isLastVisibleOther && hiddenCount > 0 && !paginationEnabled) {
+                                        return (
+                                            <div
+                                                className="grid-item more-indicator-cell"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 50%, rgba(236, 72, 153, 0.9) 100%)',
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    borderRadius: '12px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    position: 'relative',
+                                                    backdropFilter: 'blur(12px)',
+                                                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                                                    boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontSize: 'clamp(24px, 5vw, 48px)',
+                                                        fontWeight: 700,
+                                                        color: '#fff',
+                                                        textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                                    }}
+                                                >
+                                                    +{hiddenCount}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        fontSize: 'clamp(10px, 2vw, 14px)',
+                                                        color: 'rgba(255,255,255,0.8)',
+                                                        marginTop: '4px',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.5px',
+                                                    }}
+                                                >
+                                                    more
+                                                </span>
+                                            </div>
+                                        )
+                                    }
+
+                                    // Normal participant cell
+                                    return (
+                                        <div
+                                            className="grid-item"
+                                            style={{
+                                                background: participant.gradient,
+                                                width: '100%',
+                                                height: '100%',
+                                                borderRadius: participant.type.startsWith('phone-') && flexibleRatiosEnabled
+                                                    ? '16px'
+                                                    : '12px',
+                                                border: participant.type.startsWith('phone-') && flexibleRatiosEnabled
+                                                    ? '3px solid #333'
+                                                    : 'none',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                position: 'relative',
+                                                boxShadow: flexibleRatiosEnabled && participant.type.startsWith('phone-')
+                                                    ? '0 8px 32px rgba(0,0,0,0.5)'
+                                                    : 'none',
+                                            }}
+                                        >
+                                            {/* Badge for main participant (pinned) */}
+                                            {index === pinnedIndex && layoutMode !== 'gallery' && (
+                                                <div className="item-badge pinned">
+                                                    📌 Pinned
+                                                </div>
+                                            )}
+
+                                            {/* Badge for pinned in gallery */}
+                                            {index === pinnedIndex && layoutMode === 'gallery' && (
+                                                <div className="item-badge pinned">
+                                                    📌 Pinned
+                                                </div>
+                                            )}
+
+                                            {/* Type indicator when flexible ratios enabled */}
+                                            {flexibleRatiosEnabled && (
+                                                <button
+                                                    className="type-badge"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        toggleParticipantType(index)
+                                                    }}
+                                                    title="Click to change participant type"
+                                                >
+                                                    {participant.type === 'phone-916' && '9:16'}
+                                                    {participant.type === 'phone-919' && '9:19'}
+                                                    {participant.type === 'phone-34' && '3:4'}
+                                                    {participant.type === 'tablet' && '4:3'}
+                                                    {participant.type === 'desktop' && '16:9'}
+                                                </button>
+                                            )}
+
+                                            <div className="grid-item-content">
+                                                <div
+                                                    className="avatar"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.2)'
+                                                    }}
+                                                >
+                                                    {participant.initials}
+                                                </div>
+                                                <span
+                                                    className="participant-name"
+                                                    style={{
+                                                        color: '#fff'
+                                                    }}
+                                                >
+                                                    {participant.name}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                }}
+                            </GridItem>
+                        ))}
+                    </GridContainer>
+                )}
+
 
                 {/* Pagination controls */}
-                {paginationEnabled && totalPages > 1 && (
+                {paginationEnabled && totalPages > 1 && !zoomMode && (
                     <div className="pagination-controls">
                         <button
                             className="pagination-btn"
@@ -424,12 +779,12 @@ export default function App() {
                 )}
 
                 {/* Swipe hint */}
-                {paginationEnabled && totalPages > 1 && (
+                {paginationEnabled && totalPages > 1 && !zoomMode && (
                     <div className="swipe-hint">
                         👆 Swipe left/right to navigate
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

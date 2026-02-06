@@ -85,6 +85,9 @@ export function useGridDimensions(ref: RefObject<HTMLElement | null>): GridDimen
  * @returns Grid result with width, height, and position getter
  */
 export function useMeetGrid(options: MeetGridOptions): MeetGridResult {
+    // Serialize itemAspectRatios for dependency comparison
+    const itemAspectRatiosKey = options.itemAspectRatios?.join(',') ?? ''
+
     return useMemo(() => {
         return createMeetGrid(options)
     }, [
@@ -95,13 +98,14 @@ export function useMeetGrid(options: MeetGridOptions): MeetGridResult {
         options.gap,
         options.layoutMode,
         options.pinnedIndex,
-        options.speakerIndex,
         options.sidebarPosition,
         options.sidebarRatio,
         options.maxItemsPerPage,
         options.currentPage,
-        options.maxVisibleOthers,
-        options.currentOthersPage,
+        options.maxVisible,
+        options.currentVisiblePage,
+        options.flexLayout,
+        itemAspectRatiosKey,
     ])
 }
 

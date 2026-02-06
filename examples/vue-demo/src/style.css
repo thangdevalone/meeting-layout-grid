@@ -205,12 +205,29 @@ body {
   gap: 4px;
 }
 
-.item-badge.speaker {
-  background: rgba(16, 185, 129, 0.8);
-}
-
 .item-badge.pinned {
   background: rgba(234, 179, 8, 0.8);
+}
+
+.type-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: white;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.type-badge:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
 }
 
 /* Grid wrapper - allow relative positioning for pagination */

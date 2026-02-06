@@ -39,10 +39,11 @@
 
 | Tính năng | Mô tả |
 |-----------|-------|
-| **4 chế độ layout** | Gallery, Speaker, Spotlight, Sidebar |
+| **3 chế độ layout** | Gallery, Spotlight, Sidebar (dùng `sidebarPosition: 'bottom'` cho layout giống speaker) |
 | **Animation spring** | Motion (Framer Motion / Motion One) khi chuyển layout |
 | **Responsive** | Tự co giãn theo container; hàng cuối có thể căn giữa |
 | **Phân trang** | Có thể bật phân trang khi nhiều người hoặc màn nhỏ |
+| **Tỉ lệ linh hoạt** | Hỗ trợ tỉ lệ khác nhau cho từng item (phone 9:16, desktop 16:9, whiteboard fill) |
 | **Vanilla / React / Vue** | Core không phụ thuộc framework; có gói React 18+ và Vue 3 |
 | **Tree-shakeable** | Chỉ import phần cần dùng |
 | **TypeScript** | Có type đầy đủ |
@@ -171,7 +172,7 @@ const participants = ref([...])
 
 ## Thuật toán
 
-### Chọn kích thước tile (Speaker / Sidebar)
+### Chọn kích thước tile (Focused / Sidebar)
 
 Với layout có một vùng “chính” và phần còn lại là grid, thư viện chọn số cột sao cho diện tích tile ở vùng phụ là lớn nhất:
 
@@ -200,10 +201,9 @@ Vị trí tính từ index bằng hàm thuần, nên cùng index luôn ra cùng 
 
 | Chế độ | Mô tả |
 |--------|-------|
-| `gallery` | Các ô cùng kích thước; hàng cuối căn giữa |
-| `speaker` | Một ô lớn (~65%), phần còn lại xếp grid bên dưới |
+| `gallery` | Các ô cùng kích thước; hàng cuối căn giữa (dùng `pinnedIndex` để ghim) |
 | `spotlight` | Chỉ một người |
-| `sidebar` | Vùng chính + dải thumbnail (trái/phải/dưới) |
+| `sidebar` | Vùng chính + dải thumbnail (trái/phải/trên/dưới, dùng `sidebarPosition: 'bottom'` cho layout giống speaker) |
 
 ---
 
@@ -234,6 +234,110 @@ Dùng `maxItemsPerPage` và `currentPage` để tile không bị thu nhỏ quá 
 ```
 
 Kích thước tile tính theo số item trên trang hiện tại, không phải tổng số.
+
+---
+
+## Tỉ lệ linh hoạt (Flexible Aspect Ratios)
+
+Hỗ trợ tỉ lệ khác nhau cho từng participant, rất hữu ích khi:
+- **Whiteboard/Screen share** cần chiếm full cell hoặc có tỉ lệ riêng
+- **Participants từ điện thoại** có video dọc (9:16)
+- **Participants từ desktop** có video ngang (16:9)
+
+### Sử dụng
+
+```tsx
+// Định nghĩa tỉ lệ cho từng participant
+const itemAspectRatios = [
+  "16:9",    // Participant 0: desktop landscape
+  "9:16",    // Participant 1: mobile portrait  
+  "fill",    // Participant 2: whiteboard (stretch to fill)
+  undefined, // Participant 3: use global aspectRatio
+]
+
+const grid = createMeetGrid({
+  dimensions: { width: 800, height: 600 },
+  count: 4,
+  aspectRatio: '16:9', // Default ratio
+  gap: 8,
+  layoutMode: 'gallery',
+  itemAspectRatios, // Per-item ratios
+})
+
+// Lấy kích thước content thực tế (có offset để center)
+for (let i = 0; i < 4; i++) {
+  const cellDims = grid.getItemDimensions(i)              // Cell size
+  const contentDims = grid.getItemContentDimensions(i)    // Content size + offset
+
+  // Render cell wrapper
+  cell.style.cssText = `
+    width: ${cellDims.width}px;
+    height: ${cellDims.height}px;
+  `
+
+  // Render video content inside (centered)
+  video.style.cssText = `
+    width: ${contentDims.width}px;
+    height: ${contentDims.height}px;
+    margin-top: ${contentDims.offsetTop}px;
+    margin-left: ${contentDims.offsetLeft}px;
+  `
+}
+```
+
+### Các giá trị ItemAspectRatio
+
+| Giá trị | Mô tả |
+|---------|-------|
+| `"16:9"` | Tỉ lệ cố định (width:height) |
+| `"9:16"` | Video dọc từ điện thoại |
+| `"4:3"`, `"1:1"` | Các tỉ lệ khác |
+| `"fill"` | Stretch để fill toàn bộ cell (dùng cho whiteboard) |
+| `"auto"` | Fill cell (giống `"fill"`) |
+| `undefined` | Sử dụng global `aspectRatio` |
+
+### React example với mixed ratios
+
+```tsx
+import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-react'
+
+function MeetingGrid({ participants, whiteboard }) {
+  // Build aspect ratios array
+  const itemAspectRatios = participants.map(p => {
+    if (p.isWhiteboard) return 'fill'
+    if (p.isMobile) return '9:16'
+    return '16:9'
+  })
+
+  return (
+    <GridContainer
+      aspectRatio="16:9"
+      gap={8}
+      layoutMode="gallery"
+      count={participants.length}
+      itemAspectRatios={itemAspectRatios}
+    >
+      {participants.map((p, index) => (
+        <GridItem key={p.id} index={index}>
+          {({ contentDimensions }) => (
+            <div 
+              className="video-content"
+              style={{
+                width: contentDimensions.width,
+                height: contentDimensions.height,
+                marginTop: contentDimensions.offsetTop,
+                marginLeft: contentDimensions.offsetLeft,
+              }}
+            >
+              <VideoTile participant={p} />
+            </div>
+          )}
+        </GridItem>
+      ))}
+    </GridContainer>
+  )
+}
+```
 
 ---
 
@@ -278,13 +382,33 @@ meet-layout-grid/
 |--------|------|----------|-------|
 | `dimensions` | `{ width, height }` | bắt buộc | Kích thước container |
 | `count` | `number` | bắt buộc | Số item |
-| `aspectRatio` | `string` | `'16:9'` | Tỉ lệ tile |
+| `aspectRatio` | `string` | `'16:9'` | Tỉ lệ tile mặc định |
 | `gap` | `number` | `8` | Khoảng cách giữa tile (px) |
-| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `speaker` \| `spotlight` \| `sidebar` |
-| `focusIndex` | `number` | `0` | Item focus (speaker/spotlight) |
+| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `spotlight` \| `sidebar` |
+| `pinnedIndex` | `number` | - | Index của participant được ghim |
 | `maxItemsPerPage` | `number` | - | Số item tối đa mỗi trang |
 | `currentPage` | `number` | `0` | Trang hiện tại (0-based) |
-| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Vị trí sidebar |
+| `sidebarPosition` | `'left' \| 'right' \| 'top' \| 'bottom'` | `'right'` | Vị trí sidebar |
+| `itemAspectRatios` | `(ItemAspectRatio \| undefined)[]` | - | Tỉ lệ riêng cho từng item |
+
+### Kiểu `ItemAspectRatio`
+
+```typescript
+type ItemAspectRatio = string | 'fill' | 'auto'
+// string: "16:9", "9:16", "4:3", "1:1", etc.
+// 'fill': Stretch to fill cell (whiteboard)
+// 'auto': Same as 'fill'
+```
+
+### Kết quả `MeetGridResult`
+
+| Method | Mô tả |
+|--------|-------|
+| `getPosition(index)` | Trả về `{ top, left }` của item |
+| `getItemDimensions(index)` | Trả về `{ width, height }` của cell |
+| `getItemContentDimensions(index, ratio?)` | Trả về `{ width, height, offsetTop, offsetLeft }` của content thực tế |
+| `isItemVisible(index)` | Item có hiển thị trên trang hiện tại không |
+| `isMainItem(index)` | Item có phải là item chính (pinned) không |
 
 ---
 

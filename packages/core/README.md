@@ -35,8 +35,9 @@ const meetGrid = createMeetGrid({
   count: 6,
   aspectRatio: '16:9',
   gap: 8,
-  layoutMode: 'speaker', // 'gallery' | 'speaker' | 'spotlight' | 'sidebar'
-  speakerIndex: 0,
+  layoutMode: 'sidebar', // 'gallery' | 'spotlight' | 'sidebar'
+  sidebarPosition: 'bottom', // 'left' | 'right' | 'top' | 'bottom'
+  pinnedIndex: 0,
 })
 
 for (let i = 0; i < 6; i++) {
@@ -68,10 +69,9 @@ Basic responsive grid.
 Meet-style grid with layout modes.
 
 **Extra options:**
-- `layoutMode: 'gallery' | 'speaker' | 'spotlight' | 'sidebar'`
-- `pinnedIndex?: number`
-- `speakerIndex?: number`
-- `sidebarPosition?: 'left' | 'right' | 'bottom'`
+- `layoutMode: 'gallery' | 'spotlight' | 'sidebar'`
+- `pinnedIndex?: number` — Main participant (enables pin mode in gallery, or main tile in sidebar)
+- `sidebarPosition?: 'left' | 'right' | 'top' | 'bottom'`
 - `sidebarRatio?: number` — 0–1
 
 **Extra returns:**
@@ -81,10 +81,9 @@ Meet-style grid with layout modes.
 
 ## Layout modes
 
-- **gallery** — Same-size tiles in a grid
-- **speaker** — One large tile (~65% height), rest below
+- **gallery** — Same-size tiles in a grid (use `pinnedIndex` for pin mode)
 - **spotlight** — One participant only
-- **sidebar** — Main area + thumbnail strip
+- **sidebar** — Main area + thumbnail strip (use `sidebarPosition: 'bottom'` for speaker-like layout)
 
 ## License
 

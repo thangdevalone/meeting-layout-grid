@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-core?color=blue&label=core" alt="npm core" />
   <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-react?color=blue&label=react" alt="npm react" />
   <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-vue?color=blue&label=vue" alt="npm vue" />
@@ -8,7 +8,9 @@
 <h1 align="center">Meet Layout Grid</h1>
 
 <p align="center">
-  Responsive grid for video meeting layouts. Works with Vanilla JS, React, and Vue. Uses Motion for layout animations.
+  A modern, responsive grid library for video meeting layouts with smooth Motion animations.
+  <br />
+  Works with Vanilla JS, React, and Vue.
 </p>
 
 <p align="center">
@@ -17,7 +19,7 @@
   <a href="#packages">Packages</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#algorithm">Algorithm</a> ·
+  <a href="#layout-modes">Layout Modes</a> ·
   <a href="#api-reference">API Reference</a> ·
   <a href="#license">License</a>
 </p>
@@ -30,8 +32,8 @@
 
 ## Demos
 
-- [React demo](https://meeting-react-grid.modern-ui.org/)
-- [Vue demo](https://meeting-vue-grid.modern-ui.org/)
+- [React Demo](https://meeting-react-grid.modern-ui.org/)
+- [Vue Demo](https://meeting-vue-grid.modern-ui.org/)
 
 ---
 
@@ -39,19 +41,22 @@
 
 | Feature | Description |
 |---------|-------------|
-| **4 layout modes** | Gallery, Speaker, Spotlight, Sidebar |
-| **Spring animations** | Motion (Framer Motion / Motion One) for layout transitions |
-| **Responsive** | Adapts to container size; last row can be centered |
-| **Pagination** | Optional pagination for many participants or small screens |
-| **Vanilla / React / Vue** | Core is framework-agnostic; React 18+ and Vue 3 packages available |
-| **Tree-shakeable** | Import only what you use |
-| **TypeScript** | Typed APIs |
+| **3 Layout Modes** | Gallery, Spotlight, Sidebar (with top/bottom/left/right positions) |
+| **Pin/Focus Support** | Pin any participant to become the main view |
+| **Spring Animations** | Smooth Motion (Framer Motion / Motion One) transitions |
+| **Pagination** | Split participants across pages with navigation |
+| **Max Visible + "+N More"** | Limit visible items and show overflow indicator |
+| **Flexible Aspect Ratios** | Per-item ratios (phone 9:16, desktop 16:9, whiteboard fill) |
+| **Floating PiP** | Draggable Picture-in-Picture with corner snapping |
+| **Zoom Mode** | Full-screen pinned participant with floating PiP |
+| **Responsive** | Adapts to container size, last row centered |
+| **Framework Support** | Vanilla JS, React 18+, Vue 3 |
+| **TypeScript** | Full type definitions |
+| **Tree-shakeable** | Import only what you need |
 
 ---
 
 ## Packages
-
-Monorepo with three publishable packages:
 
 | Package | Description | Size |
 |---------|-------------|------|
@@ -74,48 +79,9 @@ npm install @thangdevalone/meet-layout-grid-react
 npm install @thangdevalone/meet-layout-grid-vue
 ```
 
-With pnpm:
-
-```bash
-pnpm add @thangdevalone/meet-layout-grid-react
-```
-
-With yarn:
-
-```bash
-yarn add @thangdevalone/meet-layout-grid-react
-```
-
 ---
 
 ## Quick Start
-
-### Vanilla JavaScript
-
-```javascript
-import { createMeetGrid } from '@thangdevalone/meet-layout-grid-core'
-
-const grid = createMeetGrid({
-  dimensions: { width: 800, height: 600 },
-  count: 6,
-  aspectRatio: '16:9',
-  gap: 8,
-  layoutMode: 'gallery',
-})
-
-for (let i = 0; i < 6; i++) {
-  const { top, left } = grid.getPosition(i)
-  const { width, height } = grid.getItemDimensions(i)
-  
-  element.style.cssText = `
-    position: absolute;
-    top: ${top}px;
-    left: ${left}px;
-    width: ${width}px;
-    height: ${height}px;
-  `
-}
-```
 
 ### React
 
@@ -167,32 +133,32 @@ const participants = ref([...])
 </template>
 ```
 
----
+### Vanilla JavaScript
 
-## Algorithm
+```javascript
+import { createMeetGrid } from '@thangdevalone/meet-layout-grid-core'
 
-### Tile fitting (Speaker / Sidebar)
+const grid = createMeetGrid({
+  dimensions: { width: 800, height: 600 },
+  count: 6,
+  aspectRatio: '16:9',
+  gap: 8,
+  layoutMode: 'gallery',
+})
 
-For layouts where one area is “main” and the rest is a grid, the library picks the column count that gives the largest tile area in the secondary area:
-
+for (let i = 0; i < 6; i++) {
+  const { top, left } = grid.getPosition(i)
+  const { width, height } = grid.getItemDimensions(i)
+  
+  element.style.cssText = `
+    position: absolute;
+    top: ${top}px;
+    left: ${left}px;
+    width: ${width}px;
+    height: ${height}px;
+  `
+}
 ```
-Given: N items, area W × H, aspect ratio R, gap G
-
-For each column count C from 1 to N:
-  1. rows = ceil(N / C)
-  2. tileW = (W - (C - 1) × G) / C
-  3. tileH = tileW × R
-  4. If total height > H, scale down:
-     scale = H / (rows × tileH + (rows - 1) × G)
-     tileH = tileH × scale, tileW = tileH / R
-  5. area = tileW × tileH
-
-Pick (C, rows) with max area
-```
-
-### Position calculation
-
-Positions are computed from index with a pure function so the same index always gets the same coordinates (avoids overlap on re-renders). The last row is centered when it has fewer items than the others.
 
 ---
 
@@ -200,47 +166,187 @@ Positions are computed from index with a pure function so the same index always 
 
 | Mode | Description |
 |------|-------------|
-| `gallery` | Same-size tiles in a grid; last row centered |
-| `speaker` | One large tile (~65%), rest in a grid below |
-| `spotlight` | One participant only |
-| `sidebar` | Main area + thumbnail strip (left/right/bottom) |
+| `gallery` | Equal-size tiles in a grid. Use `pinnedIndex` for pin mode with sidebar. |
+| `spotlight` | Single participant fills the screen |
+| `sidebar` | Main view + thumbnail strip (left/right/top/bottom) |
 
----
+### Gallery with Pin (Sidebar-like)
 
-## Animation Presets
+When `pinnedIndex` is set in gallery mode, it becomes a sidebar layout:
 
-| Preset | Use |
-|--------|-----|
-| `snappy` | Fast UI feedback |
-| `smooth` | Layout changes (default) |
-| `gentle` | Subtle motion |
-| `bouncy` | Slight overshoot |
+```tsx
+<GridContainer
+  layoutMode="gallery"
+  pinnedIndex={0}           // Pinned participant
+  sidebarPosition="right"   // Others on the right
+  count={participants.length}
+>
+```
+
+### Sidebar Positions
+
+| Position | Description |
+|----------|-------------|
+| `right` | Thumbnails on the right (default) |
+| `left` | Thumbnails on the left |
+| `top` | Thumbnails on top (horizontal strip) |
+| `bottom` | Thumbnails on bottom (speaker-like layout) |
 
 ---
 
 ## Pagination
 
-Use `maxItemsPerPage` and `currentPage` so tiles don’t get too small when there are many participants:
+Split participants across multiple pages:
 
 ```tsx
 <GridContainer
   count={participants.length}
-  maxItemsPerPage={9}
+  maxItemsPerPage={9}      // For gallery mode
   currentPage={currentPage}
-  onPageChange={setCurrentPage}
 >
-  {/* ... */}
+```
+
+For sidebar mode, use `maxVisible` and `currentVisiblePage`:
+
+```tsx
+<GridContainer
+  layoutMode="sidebar"
+  pinnedIndex={0}
+  maxVisible={4}                    // Max items in sidebar
+  currentVisiblePage={othersPage}   // Current page for "others"
+>
+```
+
+---
+
+## Max Visible with "+N More" Indicator
+
+Limit visible items and show an overflow indicator:
+
+```tsx
+<GridContainer
+  maxVisible={4}  // Only show 4 items
+  count={12}      // Total 12 participants
+>
+  {participants.map((p, index) => (
+    <GridItem key={p.id} index={index}>
+      {({ isLastVisibleOther, hiddenCount }) => (
+        <>
+          {isLastVisibleOther && hiddenCount > 0 ? (
+            <div className="more-indicator">+{hiddenCount} more</div>
+          ) : (
+            <VideoTile participant={p} />
+          )}
+        </>
+      )}
+    </GridItem>
+  ))}
 </GridContainer>
 ```
 
-Tiles are sized by “items on this page,” not total count.
+---
+
+## Flexible Aspect Ratios
+
+Support different aspect ratios per participant:
+
+```tsx
+const itemAspectRatios = [
+  "16:9",    // Desktop landscape
+  "9:16",    // Mobile portrait  
+  "fill",    // Whiteboard (stretch to fill)
+  undefined, // Use global aspectRatio
+]
+
+<GridContainer
+  itemAspectRatios={itemAspectRatios}
+  flexLayout={true}  // Enable flexible cell sizing
+>
+```
+
+| Value | Description |
+|-------|-------------|
+| `"16:9"` | Fixed landscape ratio |
+| `"9:16"` | Portrait video (mobile) |
+| `"4:3"` | Classic tablet ratio |
+| `"fill"` | Stretch to fill cell (whiteboard/screen share) |
+| `undefined` | Use global aspectRatio |
+
+---
+
+## Floating PiP (Picture-in-Picture)
+
+Draggable floating item that snaps to corners:
+
+```tsx
+import { FloatingGridItem } from '@thangdevalone/meet-layout-grid-react'
+
+<GridContainer>
+  {/* Main content */}
+  
+  <FloatingGridItem
+    width={130}
+    height={175}
+    anchor="bottom-right"
+    visible={true}
+  >
+    <VideoTile participant={floatingParticipant} />
+  </FloatingGridItem>
+</GridContainer>
+```
+
+---
+
+## Animation Presets
+
+| Preset | Use Case |
+|--------|----------|
+| `snappy` | Fast UI feedback |
+| `smooth` | Layout changes (default) |
+| `gentle` | Subtle motion |
+| `bouncy` | Slight overshoot |
+
+```tsx
+<GridContainer springPreset="smooth">
+```
+
+---
+
+## API Reference
+
+### `createMeetGrid(options): MeetGridResult`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `dimensions` | `{ width, height }` | required | Container size |
+| `count` | `number` | required | Number of items |
+| `aspectRatio` | `string` | `'16:9'` | Default tile aspect ratio |
+| `gap` | `number` | `8` | Gap between tiles (px) |
+| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `spotlight` \| `sidebar` |
+| `pinnedIndex` | `number` | - | Index of pinned/focused participant |
+| `sidebarPosition` | `string` | `'right'` | `left` \| `right` \| `top` \| `bottom` |
+| `maxItemsPerPage` | `number` | `0` | Max items per page (gallery mode) |
+| `currentPage` | `number` | `0` | Current page (0-based) |
+| `maxVisible` | `number` | `0` | Max visible items (sidebar mode) |
+| `currentVisiblePage` | `number` | `0` | Current page for visible items |
+| `itemAspectRatios` | `array` | - | Per-item aspect ratios |
+| `flexLayout` | `boolean` | `false` | Enable flexible cell sizing |
+
+### `MeetGridResult` Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getPosition(index)` | `{ top, left }` | Position of item |
+| `getItemDimensions(index)` | `{ width, height }` | Cell dimensions |
+| `getItemContentDimensions(index, ratio?)` | `ContentDimensions` | Content dimensions with offset |
+| `isItemVisible(index)` | `boolean` | Whether item is visible on current page |
+| `isMainItem(index)` | `boolean` | Whether item is the main/pinned item |
+| `getLastVisibleOthersIndex()` | `number` | Index of last visible item in "others" |
+| `hiddenCount` | `number` | Number of hidden items (for "+N more") |
 
 ---
 
 ## Development
-
-- Node.js 18+
-- pnpm 8+
 
 ```bash
 git clone https://github.com/thangdevalone/meet-layout-grid.git
@@ -249,19 +355,20 @@ cd meet-layout-grid
 pnpm install
 pnpm build
 
-# Demos
-cd examples/react-demo && pnpm dev   # http://localhost:5173
-cd examples/vue-demo && pnpm dev    # http://localhost:5174
+# Run demos
+pnpm dev
+# React: http://localhost:5173
+# Vue: http://localhost:5174
 ```
 
-Structure:
+Project structure:
 
 ```
 meet-layout-grid/
 ├── packages/
-│   ├── core/       # Grid logic
-│   ├── react/      # React bindings
-│   └── vue/        # Vue 3 bindings
+│   ├── core/       # Grid logic (framework-agnostic)
+│   ├── react/      # React components + hooks
+│   └── vue/        # Vue 3 components + composables
 ├── examples/
 │   ├── react-demo/
 │   └── vue-demo/
@@ -270,26 +377,8 @@ meet-layout-grid/
 
 ---
 
-## API Reference
-
-### Core: `createMeetGrid(options): MeetGrid`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `dimensions` | `{ width, height }` | required | Container size |
-| `count` | `number` | required | Number of items |
-| `aspectRatio` | `string` | `'16:9'` | Tile aspect ratio |
-| `gap` | `number` | `8` | Gap between tiles (px) |
-| `layoutMode` | `LayoutMode` | `'gallery'` | `gallery` \| `speaker` \| `spotlight` \| `sidebar` |
-| `focusIndex` | `number` | `0` | Focused item (speaker/spotlight) |
-| `maxItemsPerPage` | `number` | - | Max items per page |
-| `currentPage` | `number` | `0` | Current page (0-based) |
-| `sidebarPosition` | `'left' \| 'right' \| 'bottom'` | `'right'` | Sidebar position |
-
----
-
 ## License
 
-MIT. You can use it in personal and commercial projects; keep attribution as required in the [LICENSE](./LICENSE) file.
+MIT © [@thangdevalone](https://github.com/thangdevalone)
 
-Maintained by [@thangdevalone](https://github.com/thangdevalone).
+See [LICENSE](./LICENSE) for details.

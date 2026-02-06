@@ -12,6 +12,7 @@ export {
     GridContainer,
     GridItem,
     GridOverlay,
+    FloatingGridItem,
 } from './components'
 
 // Types
@@ -19,6 +20,7 @@ export type {
     GridContainerProps,
     GridItemProps,
     GridOverlayProps,
+    FloatingGridItemProps,
 } from './components'
 
 // Re-export from core
@@ -31,6 +33,8 @@ export type {
     LayoutMode,
     SpringPreset,
     PaginationInfo,
+    ItemAspectRatio,
+    ContentDimensions,
 } from '@thangdevalone/meet-layout-grid-core'
 
 export {
