@@ -178,6 +178,18 @@ export interface MeetGridResult extends GridResult {
    * }}>
    */
   getItemContentDimensions: (index: number, itemRatio?: ItemAspectRatio) => ContentDimensions
+  /**
+   * Index of the item that should be rendered as a floating PiP overlay.
+   * When set, the component layer (GridItem) should render this item as a
+   * draggable FloatingGridItem instead of a regular positioned item.
+   * Used automatically in 2-person mode (Zoom-style layout).
+   */
+  floatIndex?: number
+  /**
+   * Dimensions for the floating PiP item.
+   * Only set when floatIndex is defined.
+   */
+  floatDimensions?: GridDimensions
 }
 
 // ============================================
@@ -1228,6 +1240,51 @@ export function createMeetGrid(options: MeetGridOptions): MeetGridResult {
       // Gallery with pin uses flexible pin layout
       if (pinnedIndex !== undefined && pinnedIndex >= 0 && pinnedIndex < count) {
         return createFlexiblePinGrid(options)
+      }
+
+      // 2-person mode: Zoom-style float layout
+      // Person 0 fills entire container edge-to-edge (like zoom mode with gap=0)
+      // Person 1 becomes draggable floating PiP
+      if (count === 2) {
+        const { width: W, height: H } = options.dimensions
+
+        // Main person fills ENTIRE container — no gap, edge-to-edge (matches zoom mode)
+        const mainWidth = W
+        const mainHeight = H
+
+        // Float PiP dimensions — match demo zoom mode sizes exactly
+        const isMobileSize = W < 500
+        const floatW = isMobileSize ? 90 : 130
+        const floatH = isMobileSize ? 120 : 175
+
+        const pagination = createDefaultPagination(2)
+        const getItemDimensions = (index: number) =>
+          index === 0
+            ? { width: mainWidth, height: mainHeight }
+            : { width: floatW, height: floatH }
+
+        return {
+          width: mainWidth,
+          height: mainHeight,
+          rows: 1,
+          cols: 1,
+          layoutMode: 'gallery' as LayoutMode,
+          getPosition: (index: number) =>
+            index === 0 ? { top: 0, left: 0 } : { top: -9999, left: -9999 },
+          getItemDimensions,
+          isMainItem: (index: number) => index === 0,
+          pagination,
+          isItemVisible: () => true,
+          hiddenCount: 0,
+          getLastVisibleOthersIndex: () => -1,
+          getItemContentDimensions: createGetItemContentDimensions(
+            getItemDimensions,
+            options.itemAspectRatios,
+            options.aspectRatio
+          ),
+          floatIndex: 1,
+          floatDimensions: { width: floatW, height: floatH },
+        }
       }
 
       // Small mobile screens (width < 500px): override aspectRatio to container ratio

@@ -196,7 +196,7 @@ export const GridItem = defineComponent({
       return () => null
     }
 
-    const { grid, springPreset } = context
+    const { grid, springPreset, dimensions: containerDimensions } = context
 
     const position = computed(() => grid.value.getPosition(props.index))
     const dimensions = computed(() => grid.value.getItemDimensions(props.index))
@@ -211,6 +211,78 @@ export const GridItem = defineComponent({
       if (!isVisible.value) return true
       return false
     })
+
+    // Float mode detection
+    const isFloat = computed(() => grid.value.floatIndex === props.index)
+    const floatDims = computed(() => grid.value.floatDimensions ?? { width: 120, height: 160 })
+
+    // Float drag state
+    const floatAnchor = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right')
+    const floatDragging = ref(false)
+    const floatDragOffset = ref({ x: 0, y: 0 })
+    const floatStartPos = ref({ x: 0, y: 0 })
+    const floatDisplayPos = ref({ x: 0, y: 0 })
+    const floatInitialized = ref(false)
+
+    const getFloatCornerPos = (corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => {
+      const padding = 12
+      const dims = containerDimensions.value
+      const fw = floatDims.value.width
+      const fh = floatDims.value.height
+      switch (corner) {
+        case 'top-left': return { x: padding, y: padding }
+        case 'top-right': return { x: dims.width - fw - padding, y: padding }
+        case 'bottom-left': return { x: padding, y: dims.height - fh - padding }
+        case 'bottom-right':
+        default: return { x: dims.width - fw - padding, y: dims.height - fh - padding }
+      }
+    }
+
+    const findFloatNearestCorner = (x: number, y: number) => {
+      const fw = floatDims.value.width
+      const fh = floatDims.value.height
+      const centerX = x + fw / 2
+      const centerY = y + fh / 2
+      const dims = containerDimensions.value
+      const isLeft = centerX < dims.width / 2
+      const isTop = centerY < dims.height / 2
+      if (isTop && isLeft) return 'top-left' as const
+      if (isTop && !isLeft) return 'top-right' as const
+      if (!isTop && isLeft) return 'bottom-left' as const
+      return 'bottom-right' as const
+    }
+
+    const floatCornerPos = computed(() => getFloatCornerPos(floatAnchor.value))
+
+    const handleFloatDragStart = (e: MouseEvent | TouchEvent) => {
+      floatDragging.value = true
+      const pos = 'touches' in e ? e.touches[0] : e
+      floatStartPos.value = { x: pos.clientX, y: pos.clientY }
+      floatDragOffset.value = { x: 0, y: 0 }
+    }
+
+    const handleFloatDragMove = (e: MouseEvent | TouchEvent) => {
+      if (!floatDragging.value) return
+      e.preventDefault()
+      const pos = 'touches' in e ? e.touches[0] : e
+      floatDragOffset.value = {
+        x: pos.clientX - floatStartPos.value.x,
+        y: pos.clientY - floatStartPos.value.y,
+      }
+      floatDisplayPos.value = {
+        x: floatCornerPos.value.x + floatDragOffset.value.x,
+        y: floatCornerPos.value.y + floatDragOffset.value.y,
+      }
+    }
+
+    const handleFloatDragEnd = () => {
+      if (!floatDragging.value) return
+      floatDragging.value = false
+      const nearest = findFloatNearestCorner(floatDisplayPos.value.x, floatDisplayPos.value.y)
+      floatAnchor.value = nearest
+      floatDisplayPos.value = getFloatCornerPos(nearest)
+      floatDragOffset.value = { x: 0, y: 0 }
+    }
 
     // Calculate if this is the last visible "other" item
     const isLastVisibleOther = computed(() => {
@@ -231,6 +303,58 @@ export const GridItem = defineComponent({
     return () => {
       if (isHidden.value) {
         return null
+      }
+
+      // Float mode: render as draggable PiP
+      if (isFloat.value) {
+        const dims = containerDimensions.value
+        if (dims.width === 0 || dims.height === 0) return null
+
+        // Initialize position on first render
+        if (!floatInitialized.value) {
+          floatDisplayPos.value = floatCornerPos.value
+          floatInitialized.value = true
+        }
+
+        return h(
+          motion.div,
+          {
+            animate: {
+              x: floatDisplayPos.value.x,
+              y: floatDisplayPos.value.y,
+              opacity: 1,
+              scale: floatDragging.value ? 1.05 : 1,
+            },
+            transition: floatDragging.value
+              ? { duration: 0 }
+              : { type: 'spring', stiffness: 400, damping: 30 },
+            style: {
+              position: 'absolute',
+              width: `${floatDims.value.width}px`,
+              height: `${floatDims.value.height}px`,
+              borderRadius: '12px',
+              boxShadow: floatDragging.value
+                ? '0 8px 32px rgba(0,0,0,0.4)'
+                : '0 4px 20px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              cursor: floatDragging.value ? 'grabbing' : 'grab',
+              zIndex: 100,
+              touchAction: 'none',
+              left: 0,
+              top: 0,
+            },
+            'data-grid-index': props.index,
+            'data-grid-float': true,
+            onMousedown: handleFloatDragStart,
+            onMousemove: handleFloatDragMove,
+            onMouseup: handleFloatDragEnd,
+            onMouseleave: handleFloatDragEnd,
+            onTouchstart: handleFloatDragStart,
+            onTouchmove: handleFloatDragMove,
+            onTouchend: handleFloatDragEnd,
+          },
+          () => slots.default?.(slotProps.value)
+        )
       }
 
       const animateProps = {

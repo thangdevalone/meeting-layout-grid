@@ -163,14 +163,14 @@ export interface GridItemProps extends Omit<
    * </GridItem>
    */
   children:
-    | ReactNode
-    | ((props: {
-        contentDimensions: ContentDimensions
-        /** True if this is the last visible item in the "others" section */
-        isLastVisibleOther: boolean
-        /** Number of hidden items (for '+X more' indicator) */
-        hiddenCount: number
-      }) => ReactNode)
+  | ReactNode
+  | ((props: {
+    contentDimensions: ContentDimensions
+    /** True if this is the last visible item in the "others" section */
+    isLastVisibleOther: boolean
+    /** Number of hidden items (for '+X more' indicator) */
+    hiddenCount: number
+  }) => ReactNode)
   /** Optional item-specific aspect ratio (overrides itemAspectRatios from container) */
   itemAspectRatio?: ItemAspectRatio
   /** Custom transition override */
@@ -186,6 +186,7 @@ export interface GridItemProps extends Omit<
 /**
  * Grid item component with Motion animations.
  * Automatically positions itself based on index in the grid.
+ * When the grid marks this item as float (2-person mode), renders as a draggable PiP.
  */
 export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridItem(
   {
@@ -200,7 +201,51 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
   },
   ref
 ) {
-  const { grid, springPreset } = useGridContext()
+  const { grid, springPreset, dimensions: containerDimensions } = useGridContext()
+
+  // Float mode state
+  const isFloat = grid ? grid.floatIndex === index : false
+  const floatDims = grid?.floatDimensions ?? { width: 120, height: 160 }
+  const [floatAnchor, setFloatAnchor] = React.useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right')
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const [floatInitialized, setFloatInitialized] = React.useState(false)
+
+  const getFloatCornerPos = React.useCallback(
+    (corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => {
+      const padding = 12
+      const fw = floatDims.width
+      const fh = floatDims.height
+      switch (corner) {
+        case 'top-left': return { x: padding, y: padding }
+        case 'top-right': return { x: containerDimensions.width - fw - padding, y: padding }
+        case 'bottom-left': return { x: padding, y: containerDimensions.height - fh - padding }
+        case 'bottom-right':
+        default: return { x: containerDimensions.width - fw - padding, y: containerDimensions.height - fh - padding }
+      }
+    },
+    [containerDimensions.width, containerDimensions.height, floatDims.width, floatDims.height]
+  )
+
+  // Initialize float position
+  React.useEffect(() => {
+    if (isFloat && containerDimensions.width > 0 && containerDimensions.height > 0 && !floatInitialized) {
+      const pos = getFloatCornerPos(floatAnchor)
+      x.set(pos.x)
+      y.set(pos.y)
+      setFloatInitialized(true)
+    }
+  }, [isFloat, containerDimensions.width, containerDimensions.height, floatAnchor, getFloatCornerPos, floatInitialized, x, y])
+
+  // Update float position when anchor changes
+  React.useEffect(() => {
+    if (isFloat && floatInitialized && containerDimensions.width > 0 && containerDimensions.height > 0) {
+      const pos = getFloatCornerPos(floatAnchor)
+      const springConfig = { type: 'spring' as const, stiffness: 400, damping: 30 }
+      animate(x, pos.x, springConfig)
+      animate(y, pos.y, springConfig)
+    }
+  }, [isFloat, floatAnchor, containerDimensions.width, containerDimensions.height, getFloatCornerPos, floatInitialized, x, y])
 
   if (!grid) {
     return null
@@ -229,14 +274,6 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
     damping: springConfig.damping,
   }
 
-  const animatedStyle = {
-    position: 'absolute' as const,
-    width,
-    height,
-    top,
-    left,
-  }
-
   // Calculate if this is the last visible "other" item
   const lastVisibleOthersIndex = grid.getLastVisibleOthersIndex()
   const isLastVisibleOther = index === lastVisibleOthersIndex
@@ -248,6 +285,83 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
       return children({ contentDimensions, isLastVisibleOther, hiddenCount })
     }
     return children
+  }
+
+  // Float mode: render as draggable PiP
+  if (isFloat) {
+    if (containerDimensions.width === 0 || containerDimensions.height === 0) return null
+
+    const findNearestCorner = (posX: number, posY: number) => {
+      const centerX = posX + floatDims.width / 2
+      const centerY = posY + floatDims.height / 2
+      const isLeft = centerX < containerDimensions.width / 2
+      const isTop = centerY < containerDimensions.height / 2
+      if (isTop && isLeft) return 'top-left' as const
+      if (isTop && !isLeft) return 'top-right' as const
+      if (!isTop && isLeft) return 'bottom-left' as const
+      return 'bottom-right' as const
+    }
+
+    const dragConstraints = {
+      left: 12,
+      right: containerDimensions.width - floatDims.width - 12,
+      top: 12,
+      bottom: containerDimensions.height - floatDims.height - 12,
+    }
+
+    const handleDragEnd = () => {
+      const currentX = x.get()
+      const currentY = y.get()
+      const nearestCorner = findNearestCorner(currentX, currentY)
+      setFloatAnchor(nearestCorner)
+      const snapPos = getFloatCornerPos(nearestCorner)
+      const springCfg = { type: 'spring' as const, stiffness: 400, damping: 30 }
+      animate(x, snapPos.x, springCfg)
+      animate(y, snapPos.y, springCfg)
+    }
+
+    const floatingStyle: CSSProperties = {
+      position: 'absolute',
+      width: floatDims.width,
+      height: floatDims.height,
+      borderRadius: 12,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+      overflow: 'hidden',
+      cursor: 'grab',
+      zIndex: 100,
+      touchAction: 'none',
+      left: 0,
+      top: 0,
+      ...style,
+    }
+
+    return (
+      <motion.div
+        ref={ref}
+        drag
+        dragMomentum={false}
+        dragElastic={0.1}
+        dragConstraints={dragConstraints}
+        style={{ ...floatingStyle, x, y }}
+        className={className}
+        onDragEnd={handleDragEnd}
+        whileDrag={{ cursor: 'grabbing', scale: 1.05, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        data-grid-index={index}
+        data-grid-float={true}
+        {...props}
+      >
+        {renderChildren()}
+      </motion.div>
+    )
+  }
+
+  const animatedStyle = {
+    position: 'absolute' as const,
+    width,
+    height,
+    top,
+    left,
   }
 
   if (disableAnimation) {
