@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { GridContainer, GridItem, FloatingGridItem, LayoutMode, ItemAspectRatio } from '@thangdevalone/meet-layout-grid-vue'
-
-// Device types with different aspect ratios
-type ParticipantType = 
-  | 'desktop'      // 16:9 - standard laptop/desktop
-  | 'phone-916'    // 9:16 - standard phone portrait  
-  | 'phone-919'    // 9:19 - modern tall phones
-  | 'phone-34'     // 3:4 - older phones
-  | 'tablet'       // 4:3 - iPad and tablets
+import {
+  GridContainer,
+  GridItem,
+  FloatingGridItem,
+  LayoutMode,
+} from '@thangdevalone/meet-layout-grid-vue'
 
 interface Participant {
   id: number
   name: string
   gradient: string
   initials: string
-  type: ParticipantType
 }
 
 // Swipe gesture tracking
@@ -60,7 +56,6 @@ function createParticipant(index: number): Participant {
     name: index === 0 ? 'You' : `User ${index}`,
     gradient: getRandomGradient(index),
     initials: index === 0 ? 'Y' : `U${index}`,
-    type: 'desktop',
   }
 }
 
@@ -69,8 +64,8 @@ const participants = ref<Participant[]>(Array.from({ length: 12 }, (_, i) => cre
 const layoutMode = ref<LayoutMode>('gallery')
 const aspectRatio = ref('16:9')
 const gap = ref(12)
-const pinnedIndex = ref<number | null>(0) // Main participant for all modes
-const sidebarPosition = ref<'left' | 'right' | 'top' | 'bottom'>('right')
+const pinnedIndex = ref<number | null>(null) // Main participant for all modes
+const othersPosition = ref<'left' | 'right' | 'top' | 'bottom'>('right')
 
 // Pagination state
 const paginationEnabled = ref(false)
@@ -82,81 +77,84 @@ const maxVisible = ref(0)
 // Zoom mode state
 const zoomMode = ref(false)
 const floatingIndex = ref(0) // Which participant to show as floating (default: "You")
+const flexMode = ref(false)
 
 // Responsive floating size
 const isMobile = ref(window.matchMedia('(max-width: 768px)').matches)
 onMounted(() => {
   const mediaQuery = window.matchMedia('(max-width: 768px)')
-  const handler = (e: MediaQueryListEvent) => { isMobile.value = e.matches }
+  const handler = (e: MediaQueryListEvent) => {
+    isMobile.value = e.matches
+  }
   mediaQuery.addEventListener('change', handler)
   onUnmounted(() => mediaQuery.removeEventListener('change', handler))
 })
-const floatingSize = computed(() => isMobile.value ? { width: 90, height: 120 } : { width: 130, height: 175 })
+const floatingSize = computed(() =>
+  isMobile.value ? { width: 90, height: 120 } : { width: 130, height: 175 }
+)
+
+// Flex mode: per-participant aspect ratios
+const RATIO_OPTIONS = ['16:9', '9:16', '4:3', '1:1'] as const
+const participantRatios = ref<Record<number, string>>({})
+
+function cycleParticipantRatio(participantId: number) {
+  const current = participantRatios.value[participantId] || '16:9'
+  const idx = RATIO_OPTIONS.indexOf(current as (typeof RATIO_OPTIONS)[number])
+  const next = RATIO_OPTIONS[(idx + 1) % RATIO_OPTIONS.length]
+  participantRatios.value = { ...participantRatios.value, [participantId]: next }
+}
+
+// Initialize ratios when flex mode is first enabled
+watch(flexMode, (val) => {
+  if (val && Object.keys(participantRatios.value).length === 0) {
+    const initial: Record<number, string> = {}
+    participants.value.forEach((p, i) => {
+      initial[p.id] = RATIO_OPTIONS[i % RATIO_OPTIONS.length]
+    })
+    participantRatios.value = initial
+  }
+})
+
+const itemAspectRatios = computed(() =>
+  flexMode.value
+    ? participants.value.map((p) => participantRatios.value[p.id] || '16:9')
+    : undefined
+)
 
 const layoutModes: { value: LayoutMode; label: string }[] = [
   { value: 'gallery', label: 'Gallery' },
   { value: 'spotlight', label: 'Spotlight' },
-  { value: 'sidebar', label: 'Sidebar' },
 ]
 
-const aspectRatios = ['16:9', '4:3', '1:1', 'Flex']
+const aspectRatios = ['16:9', '4:3', '1:1']
 const positions = ['left', 'right', 'top', 'bottom'] as const
 
-
-const flexibleRatiosEnabled = computed(() => aspectRatio.value === 'Flex')
-const effectiveAspectRatio = computed(() => flexibleRatiosEnabled.value ? '16:9' : aspectRatio.value)
-
-function getParticipantRatio(type: ParticipantType, index: number): ItemAspectRatio | undefined {
-  if (!flexibleRatiosEnabled.value) return undefined
-
-  const isMainItem = pinnedIndex.value !== null && index === pinnedIndex.value
-  if (isMainItem) return 'fill'
-
-  switch (type) {
-    case 'phone-916': return '9:16'
-    case 'phone-919': return '9:19'
-    case 'phone-34': return '3:4'
-    case 'tablet': return '4:3'
-    default: return '16:9'
-  }
-}
-
-const itemAspectRatios = computed(() =>
-  flexibleRatiosEnabled.value
-    ? participants.value.map((p, i) => getParticipantRatio(p.type, i))
-    : undefined
-)
-
 const othersCount = computed(() => participants.value.length - 1)
-const galleryTotalPages = computed(() => 
-  paginationEnabled.value && itemsPerPage.value > 0 
-    ? Math.ceil(participants.value.length / itemsPerPage.value) 
+const galleryTotalPages = computed(() =>
+  paginationEnabled.value && itemsPerPage.value > 0
+    ? Math.ceil(participants.value.length / itemsPerPage.value)
     : 1
 )
-const othersTotalPages = computed(() => 
-  paginationEnabled.value && itemsPerPage.value > 0 
-    ? Math.ceil(othersCount.value / itemsPerPage.value) 
+const othersTotalPages = computed(() =>
+  paginationEnabled.value && itemsPerPage.value > 0
+    ? Math.ceil(othersCount.value / itemsPerPage.value)
     : 1
 )
-const totalPages = computed(() => 
-  layoutMode.value === 'gallery' && pinnedIndex.value === null 
-    ? galleryTotalPages.value 
+const totalPages = computed(() =>
+  layoutMode.value === 'gallery' && pinnedIndex.value === null
+    ? galleryTotalPages.value
     : othersTotalPages.value
 )
-const effectiveCurrentPage = computed(() => 
-  layoutMode.value === 'gallery' && pinnedIndex.value === null 
-    ? currentPage.value 
+const effectiveCurrentPage = computed(() =>
+  layoutMode.value === 'gallery' && pinnedIndex.value === null
+    ? currentPage.value
     : othersPage.value
 )
 
-const showPinnedControl = computed(() => 
-  layoutMode.value === 'spotlight' || 
-  layoutMode.value === 'sidebar'
-)
+const showPinnedControl = computed(() => layoutMode.value === 'spotlight')
 
-const showPositionControl = computed(() =>
-  layoutMode.value === 'sidebar' || 
-  (layoutMode.value === 'gallery' && pinnedIndex.value !== null)
+const showPositionControl = computed(
+  () => layoutMode.value === 'gallery' && pinnedIndex.value !== null
 )
 
 function addParticipant() {
@@ -184,38 +182,14 @@ function nextPin() {
   }
 }
 
-function toggleParticipantType(index: number) {
-  const types: ParticipantType[] = ['desktop', 'phone-916', 'phone-919', 'phone-34', 'tablet']
-  const current = participants.value[index]
-  const currentIdx = types.indexOf(current.type)
-  const newType = types[(currentIdx + 1) % types.length]
-  participants.value[index] = {
-    ...current,
-    type: newType,
-    name: index === 0 ? 'You' : `User ${index}`,
-    initials: index === 0 ? 'Y' : `U${index}`,
-  }
-}
-
-function getTypeBadge(type: ParticipantType): string {
-  switch (type) {
-    case 'phone-916': return '📱 9:16'
-    case 'phone-919': return '📱 9:19'
-    case 'phone-34': return '📱 3:4'
-    case 'tablet': return '📱 4:3'
-    default: return '💻 16:9'
-  }
-}
-
 function goToPage(page: number) {
-  // When gallery has pin, it uses sidebar layout internally, so update othersPage
+  // When gallery has pin, it uses flexible pin layout, so update othersPage
   if (layoutMode.value === 'gallery' && pinnedIndex.value === null) {
     currentPage.value = page
   } else {
     othersPage.value = page
   }
 }
-
 
 function goToPrevPage() {
   if (effectiveCurrentPage.value > 0) {
@@ -249,15 +223,21 @@ watch([totalPages, layoutMode], () => {
 
 // Auto-switch floatingIndex when it matches pinnedIndex
 watch([pinnedIndex, floatingIndex], () => {
-  if (pinnedIndex.value !== null && floatingIndex.value === pinnedIndex.value && participants.value.length > 1) {
+  if (
+    pinnedIndex.value !== null &&
+    floatingIndex.value === pinnedIndex.value &&
+    participants.value.length > 1
+  ) {
     floatingIndex.value = pinnedIndex.value === 0 ? 1 : 0
   }
 })
 
-const isGalleryWithPin = computed(() => layoutMode.value === 'gallery' && pinnedIndex.value !== null)
+const isGalleryWithPin = computed(
+  () => layoutMode.value === 'gallery' && pinnedIndex.value !== null
+)
 
 // Gallery mode pagination uses maxItemsPerPage
-// Sidebar mode (and gallery with pin) uses maxVisible for "others" pagination
+// Gallery with pin uses maxVisible for "others" pagination
 const maxItemsPerPageProp = computed(() => {
   // Only use maxItemsPerPage for pure gallery mode (no pin)
   if (paginationEnabled.value && layoutMode.value === 'gallery' && pinnedIndex.value === null) {
@@ -267,8 +247,8 @@ const maxItemsPerPageProp = computed(() => {
 })
 
 const maxVisibleProp = computed(() => {
-  // For sidebar mode or gallery with pin, use maxVisible for pagination
-  if (paginationEnabled.value && (layoutMode.value === 'sidebar' || isGalleryWithPin.value)) {
+  // For gallery with pin, use maxVisible for pagination
+  if (paginationEnabled.value && isGalleryWithPin.value) {
     return itemsPerPage.value
   }
   // When pagination is off, use maxVisible setting
@@ -295,7 +275,9 @@ function nextFloating() {
 }
 
 const floatingParticipant = computed(() => participants.value[floatingIndex.value])
-const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participants.value[pinnedIndex.value] : null)
+const pinnedParticipant = computed(() =>
+  pinnedIndex.value !== null ? participants.value[pinnedIndex.value] : null
+)
 </script>
 
 <template>
@@ -350,10 +332,17 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
             <button
               v-for="ratio in aspectRatios"
               :key="ratio"
-              :class="['btn', { active: aspectRatio === ratio }]"
-              @click="aspectRatio = ratio"
+              :class="['btn', { active: !flexMode && aspectRatio === ratio }]"
+              @click="aspectRatio = ratio; flexMode = false"
             >
               {{ ratio }}
+            </button>
+            <button
+              v-if="layoutMode === 'gallery'"
+              :class="['btn', { active: flexMode }]"
+              @click="flexMode = !flexMode"
+            >
+              Flex
             </button>
           </div>
         </div>
@@ -385,7 +374,9 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         <div v-if="paginationEnabled" class="control-group">
           <span class="control-label">Items/Page</span>
           <div class="control-buttons">
-            <button class="btn btn-icon" @click="itemsPerPage = Math.max(1, itemsPerPage - 1)">−</button>
+            <button class="btn btn-icon" @click="itemsPerPage = Math.max(1, itemsPerPage - 1)">
+              −
+            </button>
             <span class="participant-count">{{ itemsPerPage }}</span>
             <button class="btn btn-icon" @click="itemsPerPage++">+</button>
           </div>
@@ -395,21 +386,23 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         <div v-if="!paginationEnabled" class="control-group">
           <span class="control-label">Max Visible</span>
           <div class="control-buttons">
-            <button class="btn btn-icon" @click="maxVisible = Math.max(0, maxVisible - 1)">−</button>
+            <button class="btn btn-icon" @click="maxVisible = Math.max(0, maxVisible - 1)">
+              −
+            </button>
             <span class="participant-count">{{ maxVisible === 0 ? 'All' : maxVisible }}</span>
             <button class="btn btn-icon" @click="maxVisible++">+</button>
           </div>
         </div>
 
-        <!-- Position control (for sidebar or gallery with pin) -->
+        <!-- Position control (for gallery with pin) -->
         <div v-if="showPositionControl" class="control-group">
           <span class="control-label">Others Position</span>
           <div class="control-buttons">
             <button
               v-for="pos in positions"
               :key="pos"
-              :class="['btn', { active: sidebarPosition === pos }]"
-              @click="sidebarPosition = pos"
+              :class="['btn', { active: othersPosition === pos }]"
+              @click="othersPosition = pos"
             >
               {{ pos.charAt(0).toUpperCase() + pos.slice(1) }}
             </button>
@@ -420,19 +413,10 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         <div v-if="layoutMode === 'gallery'" class="control-group">
           <span class="control-label">Pin</span>
           <div class="control-buttons">
-            <button
-              :class="['btn', { active: pinnedIndex !== null }]"
-              @click="togglePin"
-            >
+            <button :class="['btn', { active: pinnedIndex !== null }]" @click="togglePin">
               {{ pinnedIndex !== null ? `📌 #${pinnedIndex + 1}` : 'None' }}
             </button>
-            <button
-              v-if="pinnedIndex !== null"
-              class="btn"
-              @click="nextPin"
-            >
-              Next →
-            </button>
+            <button v-if="pinnedIndex !== null" class="btn" @click="nextPin">Next →</button>
           </div>
         </div>
 
@@ -440,17 +424,10 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         <div v-if="layoutMode === 'gallery' && pinnedIndex !== null" class="control-group">
           <span class="control-label">Zoom</span>
           <div class="control-buttons">
-            <button
-              :class="['btn', { active: zoomMode }]"
-              @click="toggleZoomMode"
-            >
-              {{ zoomMode ? '🔍 On' : 'Off' }}
+            <button :class="['btn', { active: zoomMode }]" @click="toggleZoomMode">
+              {{ zoomMode ? '🔍 On' : '🔍 Off' }}
             </button>
-            <button
-              v-if="zoomMode"
-              class="btn"
-              @click="nextFloating"
-            >
+            <button v-if="zoomMode" class="btn" @click="nextFloating">
               Float: {{ floatingParticipant?.name }}
             </button>
           </div>
@@ -460,19 +437,21 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         <div v-if="showPinnedControl" class="control-group">
           <span class="control-label">Active Pinned</span>
           <div class="control-buttons">
-            <button class="btn" @click="nextPinned">
-              Next Pinned →
-            </button>
+            <button class="btn" @click="nextPinned">Next Pinned →</button>
           </div>
         </div>
       </div>
     </header>
 
     <!-- Grid with swipe support -->
-    <div 
+    <div
       class="grid-wrapper"
-      @touchstart="paginationEnabled && totalPages > 1 && !zoomMode ? onTouchStart($event) : undefined"
-      @touchmove="paginationEnabled && totalPages > 1 && !zoomMode ? onTouchMove($event) : undefined"
+      @touchstart="
+        paginationEnabled && totalPages > 1 && !zoomMode ? onTouchStart($event) : undefined
+      "
+      @touchmove="
+        paginationEnabled && totalPages > 1 && !zoomMode ? onTouchMove($event) : undefined
+      "
       @touchend="paginationEnabled && totalPages > 1 && !zoomMode ? onTouchEnd() : undefined"
     >
       <!-- Zoom Mode: Pinned fills screen, floating PiP -->
@@ -485,20 +464,13 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
         :pinned-index="pinnedIndex ?? undefined"
         :count="participants.length"
         spring-preset="smooth"
-        :flex-layout="true"
-        :item-aspect-ratios="participants.map(() => 'fill' as ItemAspectRatio)"
       >
         <!-- Only render the pinned participant -->
-        <GridItem
-          v-for="(participant, index) in participants"
-          :key="participant.id"
-          :index="index"
-          item-aspect-ratio="fill"
-        >
+        <GridItem v-for="(participant, index) in participants" :key="participant.id" :index="index">
           <template v-if="index === pinnedIndex">
             <div
               class="grid-item"
-              :style="{ 
+              :style="{
                 background: participant.gradient,
                 width: '100%',
                 height: '100%',
@@ -506,22 +478,25 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
             >
               <div class="item-badge pinned">Pinned (Zoom)</div>
               <div class="grid-item-content">
-                <div 
-                  class="avatar" 
-                  :style="{ 
+                <div
+                  class="avatar"
+                  :style="{
                     background: 'rgba(255,255,255,0.2)',
                     fontSize: '2rem',
                     width: '80px',
                     height: '80px',
                   }"
-                >{{ participant.initials }}</div>
-                <span 
-                  class="participant-name" 
-                  :style="{ 
+                >
+                  {{ participant.initials }}
+                </div>
+                <span
+                  class="participant-name"
+                  :style="{
                     color: '#fff',
                     fontSize: '1.2rem',
                   }"
-                >{{ participant.name }}</span>
+                  >{{ participant.name }}</span
+                >
               </div>
             </div>
           </template>
@@ -579,11 +554,18 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
                 justifyContent: 'center',
                 borderRadius: '50%',
               }"
-            >{{ floatingParticipant?.initials || 'Y' }}</div>
+            >
+              {{ floatingParticipant?.initials || 'Y' }}
+            </div>
             <span
               class="participant-name"
-              :style="{ fontSize: isMobile ? '0.6rem' : '0.75rem', marginTop: isMobile ? '3px' : '6px', color: '#fff' }"
-            >{{ floatingParticipant?.name || 'You' }}</span>
+              :style="{
+                fontSize: isMobile ? '0.6rem' : '0.75rem',
+                marginTop: isMobile ? '3px' : '6px',
+                color: '#fff',
+              }"
+              >{{ floatingParticipant?.name || 'You' }}</span
+            >
           </div>
         </FloatingGridItem>
       </GridContainer>
@@ -592,33 +574,32 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
       <GridContainer
         v-else
         class="grid-container"
-        :aspect-ratio="effectiveAspectRatio"
+        :aspect-ratio="aspectRatio"
         :gap="gap"
         :layout-mode="layoutMode"
         :pinned-index="pinnedIndexProp"
-        :sidebar-position="sidebarPosition"
+        :others-position="othersPosition"
         :count="participants.length"
         :max-items-per-page="maxItemsPerPageProp"
         :current-page="currentPage"
         :max-visible="maxVisibleProp"
         :current-visible-page="othersPage"
-        :item-aspect-ratios="itemAspectRatios"
-        :flex-layout="flexibleRatiosEnabled"
         spring-preset="smooth"
+        :item-aspect-ratios="itemAspectRatios"
       >
         <GridItem
           v-for="(participant, index) in participants"
           :key="participant.id"
           :index="index"
-          :item-aspect-ratio="getParticipantRatio(participant.type, index)"
           v-slot="{ isLastVisibleOther, hiddenCount }"
         >
           <!-- +N MORE indicator only when pagination is OFF -->
           <div
             v-if="isLastVisibleOther && hiddenCount > 0 && !paginationEnabled"
             class="grid-item more-indicator-cell"
-            :style="{ 
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 50%, rgba(236, 72, 153, 0.9) 100%)',
+            :style="{
+              background:
+                'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 50%, rgba(236, 72, 153, 0.9) 100%)',
               borderRadius: '12px',
               border: '2px solid rgba(255, 255, 255, 0.2)',
               boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
@@ -650,53 +631,62 @@ const pinnedParticipant = computed(() => pinnedIndex.value !== null ? participan
           <div
             v-else
             class="grid-item"
-            :style="{ 
+            :style="{
               background: participant.gradient,
-              borderRadius: participant.type.startsWith('phone-') && flexibleRatiosEnabled ? '16px' : '12px',
-              border: participant.type.startsWith('phone-') && flexibleRatiosEnabled ? '3px solid #333' : 'none',
+              width: '100%',
+              height: '100%',
+              borderRadius: '12px',
             }"
           >
             <!-- Badge for main participant (pinned) -->
-            <div
-              v-if="index === pinnedIndex && layoutMode !== 'gallery'"
-              class="item-badge pinned"
-            >
+            <div v-if="index === pinnedIndex && layoutMode !== 'gallery'" class="item-badge pinned">
               📌 Pinned
             </div>
 
             <!-- Badge for pinned in gallery -->
-            <div
-              v-if="index === pinnedIndex && layoutMode === 'gallery'"
-              class="item-badge pinned"
-            >
+            <div v-if="index === pinnedIndex && layoutMode === 'gallery'" class="item-badge pinned">
               📌 Pinned
             </div>
 
-            <!-- Type indicator when flexible ratios enabled -->
-            <button
-              v-if="flexibleRatiosEnabled"
-              class="type-badge"
-              @click.stop="toggleParticipantType(index)"
-              title="Click to change participant type"
-            >
-              {{ getTypeBadge(participant.type) }}
-            </button>
-
             <div class="grid-item-content">
-              <div class="avatar" :style="{ background: 'rgba(255,255,255,0.2)' }">{{ participant.initials }}</div>
-              <span class="participant-name" :style="{ color: '#fff' }">{{ participant.name }}</span>
+              <div class="avatar" :style="{ background: 'rgba(255,255,255,0.2)' }">
+                {{ participant.initials }}
+              </div>
+              <span class="participant-name" :style="{ color: '#fff' }">{{
+                participant.name
+              }}</span>
             </div>
+
+            <!-- Flex mode: ratio badge - click to cycle -->
+            <button
+              v-if="flexMode && pinnedIndex === null"
+              class="ratio-badge"
+              @click.stop="cycleParticipantRatio(participant.id)"
+              :style="{
+                position: 'absolute',
+                bottom: '6px',
+                right: '6px',
+                background: 'rgba(0,0,0,0.6)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                backdropFilter: 'blur(4px)',
+              }"
+              title="Click to change aspect ratio"
+            >
+              {{ participantRatios[participant.id] || '16:9' }}
+            </button>
           </div>
         </GridItem>
       </GridContainer>
 
       <!-- Pagination controls (hidden in zoom mode) -->
       <div v-if="paginationEnabled && totalPages > 1 && !zoomMode" class="pagination-controls">
-        <button
-          class="pagination-btn"
-          :disabled="effectiveCurrentPage === 0"
-          @click="goToPrevPage"
-        >
+        <button class="pagination-btn" :disabled="effectiveCurrentPage === 0" @click="goToPrevPage">
           ←
         </button>
 
