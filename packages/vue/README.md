@@ -1,6 +1,8 @@
 # @thangdevalone/meet-layout-grid-vue
 
-Vue 3 bindings for meet-layout-grid with Motion (motion-v) animations.
+Vue 3 bindings for meet-layout-grid with motion-v animations.
+
+> For full documentation, layout modes, and API reference, see the [main README](https://github.com/thangdevalone/meet-layout-grid#readme).
 
 ## Installation
 
@@ -8,7 +10,7 @@ Vue 3 bindings for meet-layout-grid with Motion (motion-v) animations.
 npm install @thangdevalone/meet-layout-grid-vue
 ```
 
-## Quick start
+## Quick Start
 
 ```vue
 <script setup>
@@ -22,17 +24,8 @@ const participants = ref([
 </script>
 
 <template>
-  <GridContainer
-    aspect-ratio="16:9"
-    :gap="8"
-    :count="participants.length"
-    layout-mode="gallery"
-  >
-    <GridItem
-      v-for="(participant, index) in participants"
-      :key="participant.id"
-      :index="index"
-    >
+  <GridContainer aspect-ratio="16:9" :gap="8" :count="participants.length" layout-mode="gallery">
+    <GridItem v-for="(participant, index) in participants" :key="participant.id" :index="index">
       <VideoTile :participant="participant" />
     </GridItem>
   </GridContainer>
@@ -43,84 +36,63 @@ const participants = ref([
 
 ### `<GridContainer>`
 
-Wraps the grid and provides layout via provide/inject.
+Wraps the grid and provides layout via `provide`/`inject`.
 
-```vue
-<GridContainer
-  aspect-ratio="16:9"
-  :gap="8"
-  :count="6"
-  layout-mode="gallery"
-  :pinned-index="0"
-  sidebar-position="right"
-  :sidebar-ratio="0.25"
-  spring-preset="smooth"
-  tag="div"
->
-  <slot />
-</GridContainer>
-```
+| Prop                 | Type           | Default     | Description                    |
+| -------------------- | -------------- | ----------- | ------------------------------ |
+| `aspect-ratio`       | `string`       | `'16:9'`    | Default tile aspect ratio      |
+| `gap`                | `number`       | `8`         | Gap between tiles (px)         |
+| `count`              | `number`       | required    | Number of items                |
+| `layout-mode`        | `LayoutMode`   | `'gallery'` | `gallery` \| `spotlight`       |
+| `pinned-index`       | `number`       | -           | Pinned participant index       |
+| `others-position`    | `string`       | `'right'`   | Thumbnail position in pin mode |
+| `spring-preset`      | `SpringPreset` | `'smooth'`  | Animation preset               |
+| `max-items-per-page` | `number`       | -           | Max items per page             |
+| `current-page`       | `number`       | `0`         | Current page                   |
+| `max-visible`        | `number`       | -           | Max visible in others area     |
+| `item-aspect-ratios` | `array`        | -           | Per-item aspect ratios         |
+| `tag`                | `string`       | `'div'`     | Root HTML element tag          |
 
 ### `<GridItem>`
 
-One grid cell; uses motion-v for animation.
+Single grid cell with motion-v animation.
 
-```vue
-<GridItem :index="0" :disable-animation="false" tag="div">
-  <slot />
-</GridItem>
-```
+| Prop                | Type      | Default  | Description              |
+| ------------------- | --------- | -------- | ------------------------ |
+| `index`             | `number`  | required | Item index               |
+| `disable-animation` | `boolean` | `false`  | Disable layout animation |
+| `tag`               | `string`  | `'div'`  | Root HTML element tag    |
+
+### `<FloatingGridItem>`
+
+Draggable Picture-in-Picture overlay with corner snapping.
+
+| Prop            | Type      | Default          | Description                  |
+| --------------- | --------- | ---------------- | ---------------------------- |
+| `width`         | `number`  | -                | Floating item width          |
+| `height`        | `number`  | -                | Floating item height         |
+| `anchor`        | `string`  | `'bottom-right'` | Corner anchor position       |
+| `visible`       | `boolean` | `true`           | Show/hide the floating item  |
+| `edge-padding`  | `number`  | -                | Padding from container edges |
+| `border-radius` | `number`  | -                | Border radius                |
+
+### `<GridOverlay>`
+
+Full-grid overlay for screen sharing, whiteboard, etc.
+
+| Prop               | Type      | Default | Description              |
+| ------------------ | --------- | ------- | ------------------------ |
+| `visible`          | `boolean` | `false` | Show/hide the overlay    |
+| `background-color` | `string`  | -       | Overlay background color |
 
 ## Composables
 
-### `useGridDimensions(ref)`
-
-Tracks element size (ResizeObserver).
-
-```ts
-import { useGridDimensions } from '@thangdevalone/meet-layout-grid-vue'
-import { ref } from 'vue'
-
-const containerRef = ref<HTMLElement | null>(null)
-const dimensions = useGridDimensions(containerRef)
-// ComputedRef<{ width: number, height: number }>
-```
-
-### `useMeetGrid(options)`
-
-Compute grid layout yourself.
-
-```ts
-import { useMeetGrid } from '@thangdevalone/meet-layout-grid-vue'
-import { computed } from 'vue'
-
-const options = computed(() => ({
-  dimensions: dimensions.value,
-  count: 6,
-  aspectRatio: '16:9',
-  gap: 8,
-  layoutMode: 'sidebar',
-  sidebarPosition: 'bottom', // speaker-like layout
-}))
-
-const grid = useMeetGrid(options)
-```
-
-### `useGridItemPosition(grid, index)`
-
-Get position and size for one item.
-
-```ts
-import { useGridItemPosition } from '@thangdevalone/meet-layout-grid-vue'
-
-const { position, dimensions, isMain, isHidden } = useGridItemPosition(grid, 0)
-```
-
-## Layout modes
-
-- **gallery** — Same-size tiles (use `pinnedIndex` to pin a participant)
-- **spotlight** — Single participant
-- **sidebar** — Main + thumbnails (use `sidebarPosition: 'bottom'` for speaker-like layout)
+| Composable                         | Description                           |
+| ---------------------------------- | ------------------------------------- |
+| `useGridDimensions(ref)`           | Track element size via ResizeObserver |
+| `useMeetGrid(options)`             | Compute grid layout programmatically  |
+| `useGridAnimation()`               | Access animation config from context  |
+| `useGridItemPosition(grid, index)` | Get position and size for one item    |
 
 ## License
 
