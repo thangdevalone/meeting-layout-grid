@@ -220,9 +220,7 @@ export function resolveFloatSize(
   }
   // Fallback to smallest breakpoint
   const smallest = sorted[sorted.length - 1]
-  return smallest
-    ? { width: smallest.width, height: smallest.height }
-    : { width: 120, height: 160 }
+  return smallest ? { width: smallest.width, height: smallest.height } : { width: 120, height: 160 }
 }
 
 /**
@@ -1099,7 +1097,6 @@ function createEmptyMeetGridResult(layoutMode: LayoutMode): MeetGridResult {
   }
 }
 
-
 /**
 /**
  * Create a flexible gallery grid using a justified layout algorithm.
@@ -1148,13 +1145,13 @@ function createFlexibleGalleryGrid(options: MeetGridOptions): MeetGridResult {
     maxItemsPerPage && maxItemsPerPage > 0
       ? createPaginationInfo(count, maxItemsPerPage, currentPage)
       : {
-        enabled: false,
-        currentPage: 0,
-        totalPages: 1,
-        itemsOnPage: visibleCount,
-        startIndex,
-        endIndex,
-      }
+          enabled: false,
+          currentPage: 0,
+          totalPages: 1,
+          itemsOnPage: visibleCount,
+          startIndex,
+          endIndex,
+        }
 
   // Slice to only visible items for layout
   const visibleIndices: number[] = []
@@ -1172,66 +1169,79 @@ function createFlexibleGalleryGrid(options: MeetGridOptions): MeetGridResult {
 
   const effectiveCount = visibleIndices.length
 
-  // Pack items into rows given a target row height
-  function packRows(rowHeight: number): number[][] {
-    const result: number[][] = []
-    let currentRow: number[] = []
-    let rowW = 0
+  // --- Find optimal row distribution that minimizes wasted space ---
+  // Try different row counts and pick the one where the natural total height
+  // is closest to the available height. This ensures uniform scaling (which
+  // preserves aspect ratios) is as close to 1.0 as possible.
 
-    for (let i = 0; i < effectiveCount; i++) {
-      const itemW = itemWHRatios[i] * rowHeight
-      const gapW = currentRow.length > 0 ? gap : 0
+  // Compute total height for a given row count without allocating arrays
+  // Just walks itemWHRatios directly using row sizes
+  function computeTotalHeightForRows(numRows: number): number {
+    const base = Math.floor(effectiveCount / numRows)
+    const extra = effectiveCount % numRows
+    let totalH = 0
+    let itemIdx = 0
 
-      if (currentRow.length > 0 && rowW + gapW + itemW > availW) {
-        result.push(currentRow)
-        currentRow = [i]
-        rowW = itemW
-      } else {
-        currentRow.push(i)
-        rowW += gapW + itemW
+    for (let r = 0; r < numRows; r++) {
+      const rowSize = base + (r < extra ? 1 : 0)
+      let totalUnitW = 0
+      for (let i = 0; i < rowSize; i++) {
+        totalUnitW += itemWHRatios[itemIdx + i]
       }
+      const netW = availW - (rowSize - 1) * gap
+      totalH += netW / totalUnitW
+      itemIdx += rowSize
     }
-    if (currentRow.length > 0) {
-      result.push(currentRow)
+
+    return totalH + (numRows - 1) * gap
+  }
+
+  // Build distribution array for the chosen row count
+  function distributeEvenly(numRows: number): number[][] {
+    const result: number[][] = []
+    const base = Math.floor(effectiveCount / numRows)
+    const extra = effectiveCount % numRows
+    let idx = 0
+    for (let r = 0; r < numRows; r++) {
+      const size = base + (r < extra ? 1 : 0)
+      result.push(Array.from({ length: size }, (_, i) => idx + i))
+      idx += size
     }
     return result
   }
 
-  // Binary search for optimal row height
-  let lo = 20
-  let hi = availH
-  let bestRows: number[][] = []
+  let bestRowCount = 1
+  let bestDiff = Infinity
+  const maxTryRows = Math.min(effectiveCount, Math.ceil(Math.sqrt(effectiveCount) * 2.5))
+  let prevTotalH = 0
 
-  for (let iter = 0; iter < 50; iter++) {
-    const mid = (lo + hi) / 2
-    const rows = packRows(mid)
-    const totalH = rows.length * mid + (rows.length - 1) * gap
+  for (let numRows = 1; numRows <= maxTryRows; numRows++) {
+    if (Math.floor(effectiveCount / numRows) === 0) break
 
-    if (totalH > availH) {
-      hi = mid
-    } else {
-      lo = mid
+    const totalH = computeTotalHeightForRows(numRows)
+    const diff = Math.abs(totalH - availH)
+
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestRowCount = numRows
     }
+
+    // Early exit: totalH increases with numRows, so once we cross availH
+    // and start diverging, the optimal is found
+    if (numRows > 1 && totalH > availH && prevTotalH < availH) {
+      // We just crossed — optimal is either this or previous, already tracked
+      break
+    }
+    prevTotalH = totalH
   }
 
-  const idealRowH = (lo + hi) / 2
-  bestRows = packRows(idealRowH)
+  const bestRows = distributeEvenly(bestRowCount)
 
-  // Ensure we don't have a single item alone in last row when we could redistribute
-  if (bestRows.length > 1 && bestRows[bestRows.length - 1].length === 1) {
-    const lastItem = bestRows[bestRows.length - 1][0]
-    const prevRow = bestRows[bestRows.length - 2]
-    if (prevRow.length <= 4) {
-      prevRow.push(lastItem)
-      bestRows.pop()
-    }
-  }
-
-  // For each row, scale items to exactly fill availW
   // posMap maps relative index (0..effectiveCount-1) -> layout info
   const posMap = new Map<number, { position: Position; dimensions: GridDimensions }>()
   const rowCount = bestRows.length
 
+  // Calculate natural row heights (each row fills width, maintaining aspect ratio)
   const rowHeights: number[] = []
   for (const row of bestRows) {
     const totalUnitW = row.reduce((s, relIdx) => s + itemWHRatios[relIdx], 0)
@@ -1240,11 +1250,10 @@ function createFlexibleGalleryGrid(options: MeetGridOptions): MeetGridResult {
   }
 
   const totalRowH = rowHeights.reduce((s, h) => s + h, 0) + (rowCount - 1) * gap
-  // Cap scale at 1.0 so items don't stretch beyond natural size (e.g., 4 items in 1 row)
-  // Scale both width AND height uniformly to preserve correct aspect ratios
+  // Uniform scaling preserves aspect ratios. Cap at 1.0 so rows don't overflow width.
   const globalScale = Math.min(1.0, availH / totalRowH)
 
-  // Calculate actual dimensions after uniform scaling
+  // Center vertically when there's remaining space
   const scaledTotalH = rowHeights.reduce((s, h) => s + h * globalScale, 0) + (rowCount - 1) * gap
   const verticalOffset = (availH - scaledTotalH) / 2
 
@@ -1255,10 +1264,10 @@ function createFlexibleGalleryGrid(options: MeetGridOptions): MeetGridResult {
 
     const totalUnitW = row.reduce((s, relIdx) => s + itemWHRatios[relIdx], 0)
     const netW = availW - (row.length - 1) * gap
-    // Scale widths by the same factor as heights to maintain correct aspect ratios
+    // Scale widths uniformly with heights to maintain correct aspect ratios
     const itemWidths = row.map((relIdx) => (itemWHRatios[relIdx] / totalUnitW) * netW * globalScale)
 
-    // Center row horizontally when scaled down
+    // Center row horizontally
     const scaledRowW = itemWidths.reduce((s, w) => s + w, 0) + (row.length - 1) * gap
     const horizontalOffset = (availW - scaledRowW) / 2
 
@@ -1362,9 +1371,7 @@ export function createMeetGrid(options: MeetGridOptions): MeetGridResult {
 
         const pagination = createDefaultPagination(2)
         const getItemDimensions = (index: number) =>
-          index === 0
-            ? { width: mainWidth, height: mainHeight }
-            : { width: floatW, height: floatH }
+          index === 0 ? { width: mainWidth, height: mainHeight } : { width: floatW, height: floatH }
 
         return {
           width: mainWidth,
@@ -1448,13 +1455,13 @@ export function createMeetGrid(options: MeetGridOptions): MeetGridResult {
         maxItemsPerPage && maxItemsPerPage > 0
           ? createPaginationInfo(count, maxItemsPerPage, currentPage)
           : {
-            enabled: false,
-            currentPage: 0,
-            totalPages: 1,
-            itemsOnPage: visibleCount,
-            startIndex,
-            endIndex,
-          }
+              enabled: false,
+              currentPage: 0,
+              totalPages: 1,
+              itemsOnPage: visibleCount,
+              startIndex,
+              endIndex,
+            }
 
       const effectiveCount = visibleCount
 
