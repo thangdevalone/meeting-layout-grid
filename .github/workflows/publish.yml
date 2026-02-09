@@ -66,15 +66,37 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
           else
-            # Auto-detect from commit message
-            COMMIT_MSG=$(git log -1 --pretty=%B)
-            if echo "$COMMIT_MSG" | grep -iqE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
-              echo "type=major" >> $GITHUB_OUTPUT
-            elif echo "$COMMIT_MSG" | grep -iqE "^(feat|feature)(\(.+\))?:"; then
-              echo "type=minor" >> $GITHUB_OUTPUT
+            # Auto-detect from commit messages in this push/merge
+            # Get all commits in this push (from before to after)
+            if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              # Normal push/merge - check all commits in the push
+              COMMITS=$(git log --pretty=%B ${{ github.event.before }}..${{ github.event.after }})
+              echo "Checking commits from ${{ github.event.before }} to ${{ github.event.after }}"
             else
-              echo "type=patch" >> $GITHUB_OUTPUT
+              # First push to branch - check last commit only
+              COMMITS=$(git log -1 --pretty=%B)
+              echo "First push - checking last commit only"
             fi
+            
+            echo "Commits to analyze:"
+            echo "$COMMITS"
+            echo "---"
+            
+            # Determine highest priority version bump (major > minor > patch)
+            # Priority: BREAKING CHANGE (major) > feat (minor) > fix (patch)
+            if echo "$COMMITS" | grep -iqE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
+              VERSION_TYPE="major"
+              echo "✅ Found BREAKING CHANGE - will bump MAJOR version"
+            elif echo "$COMMITS" | grep -iqE "^(feat|feature)(\(.+\))?:"; then
+              VERSION_TYPE="minor"
+              echo "✅ Found feature - will bump MINOR version"
+            else
+              VERSION_TYPE="patch"
+              echo "✅ Found fix/chore - will bump PATCH version"
+            fi
+            
+            echo "type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+            echo "Final decision: bump $VERSION_TYPE version"
           fi
 
       - name: Configure Git
