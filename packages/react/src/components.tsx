@@ -57,6 +57,18 @@ export interface GridContainerProps extends Omit<HTMLAttributes<HTMLDivElement>,
   floatWidth?: number
   /** Custom height for the floating PiP item in 2-person mode */
   floatHeight?: number
+  /**
+   * Responsive breakpoints for the floating PiP in 2-person mode.
+   * When provided, PiP size auto-adjusts based on container width.
+   * Use `DEFAULT_FLOAT_BREAKPOINTS` for a ready-made 5-level responsive config.
+   * @example
+   * floatBreakpoints={DEFAULT_FLOAT_BREAKPOINTS}
+   * floatBreakpoints={[
+   *   { minWidth: 0, width: 80, height: 110 },
+   *   { minWidth: 600, width: 150, height: 200 },
+   * ]}
+   */
+  floatBreakpoints?: PipBreakpoint[]
 }
 
 /**
@@ -82,6 +94,7 @@ export const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(func
     itemAspectRatios,
     floatWidth,
     floatHeight,
+    floatBreakpoints,
 
     ...props
   },
@@ -109,6 +122,7 @@ export const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(func
     itemAspectRatios,
     floatWidth,
     floatHeight,
+    floatBreakpoints,
   }
 
   const grid = useMeetGrid(gridOptions)
@@ -171,16 +185,16 @@ export interface GridItemProps extends Omit<
    * </GridItem>
    */
   children:
-  | ReactNode
-  | ((props: {
-    contentDimensions: ContentDimensions
-    /** True if this is the last visible item in the "others" section */
-    isLastVisibleOther: boolean
-    /** Number of hidden items (for '+X more' indicator) */
-    hiddenCount: number
-    /** True if this item is rendered as a floating PiP */
-    isFloat: boolean
-  }) => ReactNode)
+    | ReactNode
+    | ((props: {
+        contentDimensions: ContentDimensions
+        /** True if this is the last visible item in the "others" section */
+        isLastVisibleOther: boolean
+        /** Number of hidden items (for '+X more' indicator) */
+        hiddenCount: number
+        /** True if this item is rendered as a floating PiP */
+        isFloat: boolean
+      }) => ReactNode)
   /** Optional item-specific aspect ratio (overrides itemAspectRatios from container) */
   itemAspectRatio?: ItemAspectRatio
   /** Custom transition override */
@@ -213,12 +227,24 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
 ) {
   const { grid, springPreset, dimensions: containerDimensions } = useGridContext()
 
-  // Float mode state
+  // Compute all grid-derived values upfront (safe even when grid is null)
+  // so that hooks below can reference them without conditional returns before hooks
   const isFloat = grid ? grid.floatIndex === index : false
+  const isVisible = grid ? grid.isItemVisible(index) : false
+  const isMain = grid ? grid.isMainItem(index) : false
+  const isHidden =
+    !grid || !isVisible || (grid.layoutMode === 'spotlight' && !isMain)
+
+  const position = grid && !isHidden ? grid.getPosition(index) : { top: 0, left: 0 }
+  const itemDims = grid && !isHidden ? grid.getItemDimensions(index) : { width: 0, height: 0 }
+
+  // Float mode state
   const floatDims = grid?.floatDimensions ?? { width: 120, height: 160 }
-  const [floatAnchor, setFloatAnchor] = React.useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right')
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
+  const [floatAnchor, setFloatAnchor] = React.useState<
+    'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  >('bottom-right')
+  const floatX = useMotionValue(0)
+  const floatY = useMotionValue(0)
   const [floatInitialized, setFloatInitialized] = React.useState(false)
 
   const getFloatCornerPos = React.useCallback(
@@ -227,57 +253,130 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
       const fw = floatDims.width
       const fh = floatDims.height
       switch (corner) {
-        case 'top-left': return { x: padding, y: padding }
-        case 'top-right': return { x: containerDimensions.width - fw - padding, y: padding }
-        case 'bottom-left': return { x: padding, y: containerDimensions.height - fh - padding }
+        case 'top-left':
+          return { x: padding, y: padding }
+        case 'top-right':
+          return { x: containerDimensions.width - fw - padding, y: padding }
+        case 'bottom-left':
+          return { x: padding, y: containerDimensions.height - fh - padding }
         case 'bottom-right':
-        default: return { x: containerDimensions.width - fw - padding, y: containerDimensions.height - fh - padding }
+        default:
+          return {
+            x: containerDimensions.width - fw - padding,
+            y: containerDimensions.height - fh - padding,
+          }
       }
     },
     [containerDimensions.width, containerDimensions.height, floatDims.width, floatDims.height]
   )
 
+  // Reset floatInitialized when item stops floating (e.g., 2→3 participants)
+  // so that re-entering float mode (3→2) re-initializes position correctly
+  React.useEffect(() => {
+    if (!isFloat) {
+      setFloatInitialized(false)
+    }
+  }, [isFloat])
+
   // Initialize float position
   React.useEffect(() => {
-    if (isFloat && containerDimensions.width > 0 && containerDimensions.height > 0 && !floatInitialized) {
+    if (
+      isFloat &&
+      containerDimensions.width > 0 &&
+      containerDimensions.height > 0 &&
+      !floatInitialized
+    ) {
       const pos = getFloatCornerPos(floatAnchor)
-      x.set(pos.x)
-      y.set(pos.y)
+      floatX.set(pos.x)
+      floatY.set(pos.y)
       setFloatInitialized(true)
     }
-  }, [isFloat, containerDimensions.width, containerDimensions.height, floatAnchor, getFloatCornerPos, floatInitialized, x, y])
+  }, [
+    isFloat,
+    containerDimensions.width,
+    containerDimensions.height,
+    floatAnchor,
+    getFloatCornerPos,
+    floatInitialized,
+    floatX,
+    floatY,
+  ])
 
-  // Update float position when anchor changes
+  // Update float position when anchor or container size changes
   React.useEffect(() => {
-    if (isFloat && floatInitialized && containerDimensions.width > 0 && containerDimensions.height > 0) {
+    if (
+      isFloat &&
+      floatInitialized &&
+      containerDimensions.width > 0 &&
+      containerDimensions.height > 0
+    ) {
       const pos = getFloatCornerPos(floatAnchor)
-      const springConfig = { type: 'spring' as const, stiffness: 400, damping: 30 }
-      animate(x, pos.x, springConfig)
-      animate(y, pos.y, springConfig)
+      const cfg = { type: 'spring' as const, stiffness: 400, damping: 30 }
+      animate(floatX, pos.x, cfg)
+      animate(floatY, pos.y, cfg)
     }
-  }, [isFloat, floatAnchor, containerDimensions.width, containerDimensions.height, getFloatCornerPos, floatInitialized, x, y])
+  }, [
+    isFloat,
+    floatAnchor,
+    containerDimensions.width,
+    containerDimensions.height,
+    getFloatCornerPos,
+    floatInitialized,
+    floatX,
+    floatY,
+  ])
 
-  if (!grid) {
-    return null
-  }
-
-  // Hide items not visible (pagination or mode-based hiding)
-  if (!grid.isItemVisible(index)) {
-    return null
-  }
-
-  // Get position and dimensions directly from grid
-  const { top, left } = grid.getPosition(index)
-  const { width, height } = grid.getItemDimensions(index)
-  const contentDimensions = grid.getItemContentDimensions(index, itemAspectRatio)
-  const isMain = grid.isMainItem(index)
-
-  // Hide items in spotlight mode if not the main item
-  if (grid.layoutMode === 'spotlight' && !isMain) {
-    return null
-  }
+  // ── Grid mode: motion values for position (x/y = CSS transforms, GPU-accelerated) ──
+  // Width/height use the animate prop (Motion only supports transforms in style motion values).
+  // On mount / mode switch: set position immediately (no fly-in animation).
+  // On subsequent changes: animate with spring.
+  const gridX = useMotionValue(0)
+  const gridY = useMotionValue(0)
+  const gridAnimReady = useRef(false)
 
   const springConfig = getSpringConfig(springPreset)
+
+  React.useEffect(() => {
+    // Skip when in float mode or hidden — reset so re-entry initializes correctly
+    if (isFloat || isHidden) {
+      gridAnimReady.current = false
+      return
+    }
+
+    if (!gridAnimReady.current) {
+      // First time visible in grid mode: set position immediately (no animation)
+      gridX.set(position.left)
+      gridY.set(position.top)
+      gridAnimReady.current = true
+    } else {
+      // Subsequent changes: spring animate position
+      const cfg = {
+        type: 'spring' as const,
+        stiffness: springConfig.stiffness,
+        damping: springConfig.damping,
+      }
+      animate(gridX, position.left, cfg)
+      animate(gridY, position.top, cfg)
+    }
+  }, [
+    position.top,
+    position.left,
+    isFloat,
+    isHidden,
+    gridX,
+    gridY,
+    springConfig.stiffness,
+    springConfig.damping,
+  ])
+
+  // ── All hooks declared above — safe to do conditional returns below ──
+
+  if (isHidden) {
+    return null
+  }
+
+  const contentDimensions = grid!.getItemContentDimensions(index, itemAspectRatio)
+
   const transition: Transition = customTransition ?? {
     type: springConfig.type,
     stiffness: springConfig.stiffness,
@@ -285,9 +384,9 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
   }
 
   // Calculate if this is the last visible "other" item
-  const lastVisibleOthersIndex = grid.getLastVisibleOthersIndex()
+  const lastVisibleOthersIndex = grid!.getLastVisibleOthersIndex()
   const isLastVisibleOther = index === lastVisibleOthersIndex
-  const hiddenCount = grid.hiddenCount
+  const hiddenCount = grid!.hiddenCount
 
   // Render children - support both ReactNode and render function
   const renderChildren = () => {
@@ -320,14 +419,14 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
     }
 
     const handleDragEnd = () => {
-      const currentX = x.get()
-      const currentY = y.get()
+      const currentX = floatX.get()
+      const currentY = floatY.get()
       const nearestCorner = findNearestCorner(currentX, currentY)
       setFloatAnchor(nearestCorner)
       const snapPos = getFloatCornerPos(nearestCorner)
       const springCfg = { type: 'spring' as const, stiffness: 400, damping: 30 }
-      animate(x, snapPos.x, springCfg)
-      animate(y, snapPos.y, springCfg)
+      animate(floatX, snapPos.x, springCfg)
+      animate(floatY, snapPos.y, springCfg)
     }
 
     const floatingStyle: CSSProperties = {
@@ -352,7 +451,7 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
         dragMomentum={false}
         dragElastic={0.1}
         dragConstraints={dragConstraints}
-        style={{ ...floatingStyle, x, y }}
+        style={{ ...floatingStyle, x: floatX, y: floatY }}
         className={className}
         onDragEnd={handleDragEnd}
         whileDrag={{ cursor: 'grabbing', scale: 1.05, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
@@ -366,19 +465,18 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
     )
   }
 
-  const animatedStyle = {
-    position: 'absolute' as const,
-    width,
-    height,
-    top,
-    left,
-  }
-
   if (disableAnimation) {
     return (
       <div
         ref={ref}
-        style={{ ...animatedStyle, ...style }}
+        style={{
+          position: 'absolute',
+          width: itemDims.width,
+          height: itemDims.height,
+          top: position.top,
+          left: position.left,
+          ...style,
+        }}
         className={className}
         data-grid-index={index}
         data-grid-main={isMain}
@@ -389,14 +487,18 @@ export const GridItem = forwardRef<HTMLDivElement, GridItemProps>(function GridI
     )
   }
 
+  // Grid mode: hybrid animation approach
+  // - Position: motion values (x/y CSS transforms) → GPU-accelerated, no mount animation
+  // - Size: animate prop → spring animation handled by Motion
+  // initial = animate on mount → no mount animation for size
+  // Subsequent animate changes → Motion springs from previous to new size
   return (
     <motion.div
       ref={ref}
-      layout
-      initial={false}
-      animate={animatedStyle}
+      initial={{ width: itemDims.width, height: itemDims.height }}
+      animate={{ width: itemDims.width, height: itemDims.height }}
       transition={transition}
-      style={style}
+      style={{ position: 'absolute', top: 0, left: 0, x: gridX, y: gridY, ...style }}
       className={className}
       data-grid-index={index}
       data-grid-main={isMain}
@@ -417,10 +519,28 @@ export interface FloatingGridItemProps extends Omit<
 > {
   /** Children to render inside the floating item */
   children: ReactNode
-  /** Width of the floating item */
+  /** Width of the floating item (px). Overridden by `breakpoints` when provided. */
   width?: number
-  /** Height of the floating item */
+  /** Height of the floating item (px). Overridden by `breakpoints` when provided. */
   height?: number
+  /**
+   * Responsive breakpoints for PiP sizing.
+   * When provided, width/height auto-adjust based on container width.
+   * Overrides the fixed `width`/`height` props.
+   * Use `DEFAULT_FLOAT_BREAKPOINTS` for a ready-made 5-level responsive config.
+   *
+   * @example
+   * // Use default responsive breakpoints
+   * breakpoints={DEFAULT_FLOAT_BREAKPOINTS}
+   *
+   * // Custom breakpoints
+   * breakpoints={[
+   *   { minWidth: 0, width: 80, height: 110 },
+   *   { minWidth: 600, width: 150, height: 200 },
+   *   { minWidth: 1200, width: 250, height: 330 },
+   * ]}
+   */
+  breakpoints?: PipBreakpoint[]
   /** Initial position (x, y from container edges) */
   initialPosition?: { x: number; y: number }
   /** Which corner to anchor: 'top-left', 'top-right', 'bottom-left', 'bottom-right' */
@@ -454,6 +574,7 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
       children,
       width = 120,
       height = 160,
+      breakpoints,
       initialPosition = { x: 16, y: 16 },
       anchor: initialAnchor = 'bottom-right',
       visible = true,
@@ -471,6 +592,17 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
     const { dimensions } = useGridContext()
     const [currentAnchor, setCurrentAnchor] = React.useState(initialAnchor)
 
+    // Resolve responsive size from breakpoints (if provided), otherwise use fixed width/height
+    const resolvedSize = React.useMemo(() => {
+      if (breakpoints && breakpoints.length > 0 && dimensions.width > 0) {
+        return resolveFloatSize(dimensions.width, breakpoints)
+      }
+      return null
+    }, [breakpoints, dimensions.width])
+
+    const effectiveWidth = resolvedSize?.width ?? width
+    const effectiveHeight = resolvedSize?.height ?? height
+
     // Use motion values for direct control over position
     const x = useMotionValue(0)
     const y = useMotionValue(0)
@@ -485,18 +617,18 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
           case 'top-left':
             return { x: padding, y: padding }
           case 'top-right':
-            return { x: dimensions.width - width - padding, y: padding }
+            return { x: dimensions.width - effectiveWidth - padding, y: padding }
           case 'bottom-left':
-            return { x: padding, y: dimensions.height - height - padding }
+            return { x: padding, y: dimensions.height - effectiveHeight - padding }
           case 'bottom-right':
           default:
             return {
-              x: dimensions.width - width - padding,
-              y: dimensions.height - height - padding,
+              x: dimensions.width - effectiveWidth - padding,
+              y: dimensions.height - effectiveHeight - padding,
             }
         }
       },
-      [dimensions.width, dimensions.height, width, height, edgePadding, initialPosition.x]
+      [dimensions.width, dimensions.height, effectiveWidth, effectiveHeight, edgePadding, initialPosition.x]
     )
 
     // Initialize position when dimensions are available
@@ -509,7 +641,7 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
       }
     }, [dimensions.width, dimensions.height, currentAnchor, getCornerPosition, isInitialized, x, y])
 
-    // Update position when anchor changes (after initialization)
+    // Update position when anchor or effective size changes (after initialization)
     React.useEffect(() => {
       if (isInitialized && dimensions.width > 0 && dimensions.height > 0) {
         const pos = getCornerPosition(currentAnchor)
@@ -526,8 +658,8 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
       posX: number,
       posY: number
     ): 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' => {
-      const centerX = posX + width / 2
-      const centerY = posY + height / 2
+      const centerX = posX + effectiveWidth / 2
+      const centerY = posY + effectiveHeight / 2
       const containerCenterX = dimensions.width / 2
       const containerCenterY = dimensions.height / 2
 
@@ -543,15 +675,15 @@ export const FloatingGridItem = forwardRef<HTMLDivElement, FloatingGridItemProps
     // Constrain position within container bounds (for drag)
     const dragConstraints = {
       left: edgePadding,
-      right: dimensions.width - width - edgePadding,
+      right: dimensions.width - effectiveWidth - edgePadding,
       top: edgePadding,
-      bottom: dimensions.height - height - edgePadding,
+      bottom: dimensions.height - effectiveHeight - edgePadding,
     }
 
     const floatingStyle: CSSProperties = {
       position: 'absolute',
-      width,
-      height,
+      width: effectiveWidth,
+      height: effectiveHeight,
       borderRadius,
       boxShadow,
       overflow: 'hidden',
