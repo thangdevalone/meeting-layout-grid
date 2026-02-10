@@ -4,7 +4,7 @@ import {
   GridItem,
   FloatingGridItem,
   LayoutMode,
-} from '@thangdevalone/meet-layout-grid-react'
+} from '@thangdevalone/meeting-grid-layout-react'
 
 // Generate random gradient for participant tiles
 function getRandomGradient(seed: number) {

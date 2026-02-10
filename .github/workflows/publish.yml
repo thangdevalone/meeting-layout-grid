@@ -166,19 +166,19 @@ jobs:
           tag_name: v${{ steps.bump_version.outputs.new_version }}
           name: Release v${{ steps.bump_version.outputs.new_version }}
           body: |
-            ## Meet Layout Grid v${{ steps.bump_version.outputs.new_version }}
+            ## Meeting Grid Layout v${{ steps.bump_version.outputs.new_version }}
             
             ### Installation
             
             ```bash
             # Core (Vanilla JS)
-            npm install @thangdevalone/meet-layout-grid-core@${{ steps.bump_version.outputs.new_version }}
+            npm install @thangdevalone/meeting-grid-layout-core@${{ steps.bump_version.outputs.new_version }}
             
             # React
-            npm install @thangdevalone/meet-layout-grid-react@${{ steps.bump_version.outputs.new_version }}
+            npm install @thangdevalone/meeting-grid-layout-react@${{ steps.bump_version.outputs.new_version }}
             
             # Vue 3
-            npm install @thangdevalone/meet-layout-grid-vue@${{ steps.bump_version.outputs.new_version }}
+            npm install @thangdevalone/meeting-grid-layout-vue@${{ steps.bump_version.outputs.new_version }}
             ```
           draft: false
           prerelease: false
@@ -192,6 +192,6 @@ jobs:
           echo "**Version:** v${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Published packages:" >> $GITHUB_STEP_SUMMARY
-          echo "- [@thangdevalone/meet-layout-grid-core](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core)" >> $GITHUB_STEP_SUMMARY
-          echo "- [@thangdevalone/meet-layout-grid-react](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react)" >> $GITHUB_STEP_SUMMARY
-          echo "- [@thangdevalone/meet-layout-grid-vue](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue)" >> $GITHUB_STEP_SUMMARY
+          echo "- [@thangdevalone/meeting-grid-layout-core](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-core)" >> $GITHUB_STEP_SUMMARY
+          echo "- [@thangdevalone/meeting-grid-layout-react](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-react)" >> $GITHUB_STEP_SUMMARY
+          echo "- [@thangdevalone/meeting-grid-layout-vue](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-vue)" >> $GITHUB_STEP_SUMMARY

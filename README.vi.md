@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-core?color=blue&label=core" alt="npm core" />
-  <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-react?color=blue&label=react" alt="npm react" />
-  <img src="https://img.shields.io/npm/v/@thangdevalone/meet-layout-grid-vue?color=blue&label=vue" alt="npm vue" />
+  <img src="https://img.shields.io/npm/v/@thangdevalone/meeting-grid-layout-core?color=blue&label=core" alt="npm core" />
+  <img src="https://img.shields.io/npm/v/@thangdevalone/meeting-grid-layout-react?color=blue&label=react" alt="npm react" />
+  <img src="https://img.shields.io/npm/v/@thangdevalone/meeting-grid-layout-vue?color=blue&label=vue" alt="npm vue" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="license" />
 </p>
 
-<h1 align="center">Meet Layout Grid</h1>
+<h1 align="center">Meeting Grid Layout</h1>
 
 <p align="center">
   Thư viện grid responsive cho bố cục video meeting với animation mượt mà.
@@ -60,9 +60,9 @@
 
 | Gói                                                                                                            | Mô tả                              | Dung lượng |
 | -------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------- |
-| [`@thangdevalone/meet-layout-grid-core`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-core)   | Chỉ tính toán grid (Vanilla JS/TS) | ~3KB       |
-| [`@thangdevalone/meet-layout-grid-react`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-react) | Component React + Motion           | ~8KB       |
-| [`@thangdevalone/meet-layout-grid-vue`](https://www.npmjs.com/package/@thangdevalone/meet-layout-grid-vue)     | Component Vue 3 + Motion           | ~8KB       |
+| [`@thangdevalone/meeting-grid-layout-core`](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-core)   | Chỉ tính toán grid (Vanilla JS/TS) | ~3KB       |
+| [`@thangdevalone/meeting-grid-layout-react`](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-react) | Component React + Motion           | ~8KB       |
+| [`@thangdevalone/meeting-grid-layout-vue`](https://www.npmjs.com/package/@thangdevalone/meeting-grid-layout-vue)     | Component Vue 3 + Motion           | ~8KB       |
 
 > Gói React và Vue đã re-export mọi thứ từ core — không cần cài core riêng.
 
@@ -72,13 +72,13 @@
 
 ```bash
 # Chỉ core (Vanilla JavaScript/TypeScript)
-npm install @thangdevalone/meet-layout-grid-core
+npm install @thangdevalone/meeting-grid-layout-core
 
 # React 18+
-npm install @thangdevalone/meet-layout-grid-react
+npm install @thangdevalone/meeting-grid-layout-react
 
 # Vue 3
-npm install @thangdevalone/meet-layout-grid-vue
+npm install @thangdevalone/meeting-grid-layout-vue
 ```
 
 ---
@@ -88,7 +88,7 @@ npm install @thangdevalone/meet-layout-grid-vue
 ### React
 
 ```tsx
-import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-react'
+import { GridContainer, GridItem } from '@thangdevalone/meeting-grid-layout-react'
 
 function MeetingGrid({ participants }) {
   return (
@@ -107,7 +107,7 @@ function MeetingGrid({ participants }) {
 
 ```vue
 <script setup>
-import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-vue'
+import { GridContainer, GridItem } from '@thangdevalone/meeting-grid-layout-vue'
 
 const participants = ref([...])
 </script>
@@ -124,7 +124,7 @@ const participants = ref([...])
 ### Vanilla JavaScript
 
 ```javascript
-import { createMeetGrid } from '@thangdevalone/meet-layout-grid-core'
+import { createMeetGrid } from '@thangdevalone/meeting-grid-layout-core'
 
 const grid = createMeetGrid({
   dimensions: { width: 800, height: 600 },
@@ -260,7 +260,7 @@ const itemAspectRatios = [
 Item nổi kéo thả, snap vào góc:
 
 ```tsx
-import { FloatingGridItem } from '@thangdevalone/meet-layout-grid-react'
+import { FloatingGridItem } from '@thangdevalone/meeting-grid-layout-react'
 
 ;<GridContainer>
   {/* Các grid item chính */}
@@ -286,7 +286,7 @@ import { FloatingGridItem } from '@thangdevalone/meet-layout-grid-react'
 Overlay toàn grid cho screen sharing, whiteboard, hoặc nội dung khác:
 
 ```tsx
-import { GridOverlay } from '@thangdevalone/meet-layout-grid-react'
+import { GridOverlay } from '@thangdevalone/meeting-grid-layout-react'
 
 ;<GridContainer>
   {/* Các grid item */}
@@ -371,8 +371,8 @@ import { GridOverlay } from '@thangdevalone/meet-layout-grid-react'
 ## Phát triển
 
 ```bash
-git clone https://github.com/thangdevalone/meet-layout-grid.git
-cd meet-layout-grid
+git clone https://github.com/thangdevalone/meeting-grid-layout.git
+cd meeting-grid-layout
 
 pnpm install
 pnpm build
@@ -386,7 +386,7 @@ pnpm dev
 Cấu trúc dự án:
 
 ```
-meet-layout-grid/
+meeting-grid-layout/
 ├── packages/
 │   ├── core/       # Logic grid (không phụ thuộc framework)
 │   ├── react/      # React component + hooks

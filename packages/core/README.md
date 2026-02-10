@@ -1,19 +1,19 @@
-# @thangdevalone/meet-layout-grid-core
+# @thangdevalone/meeting-grid-layout-core
 
-Framework-agnostic grid calculation engine for meet-layout-grid. Zero dependencies.
+Framework-agnostic grid calculation engine for meeting-grid-layout. Zero dependencies.
 
-> For full documentation, examples, and API reference, see the [main README](https://github.com/thangdevalone/meet-layout-grid#readme).
+> For full documentation, examples, and API reference, see the [main README](https://github.com/thangdevalone/meeting-grid-layout#readme).
 
 ## Installation
 
 ```bash
-npm install @thangdevalone/meet-layout-grid-core
+npm install @thangdevalone/meeting-grid-layout-core
 ```
 
 ## Usage
 
 ```typescript
-import { createMeetGrid } from '@thangdevalone/meet-layout-grid-core'
+import { createMeetGrid } from '@thangdevalone/meeting-grid-layout-core'
 
 const grid = createMeetGrid({
   dimensions: { width: 800, height: 600 },

@@ -1,19 +1,19 @@
-# @thangdevalone/meet-layout-grid-react
+# @thangdevalone/meeting-grid-layout-react
 
-React 18+ bindings for meet-layout-grid with Motion animations.
+React 18+ bindings for meeting-grid-layout with Motion animations.
 
-> For full documentation, layout modes, and API reference, see the [main README](https://github.com/thangdevalone/meet-layout-grid#readme).
+> For full documentation, layout modes, and API reference, see the [main README](https://github.com/thangdevalone/meeting-grid-layout#readme).
 
 ## Installation
 
 ```bash
-npm install @thangdevalone/meet-layout-grid-react
+npm install @thangdevalone/meeting-grid-layout-react
 ```
 
 ## Quick Start
 
 ```tsx
-import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-react'
+import { GridContainer, GridItem } from '@thangdevalone/meeting-grid-layout-react'
 
 function MeetingGrid({ participants }) {
   return (

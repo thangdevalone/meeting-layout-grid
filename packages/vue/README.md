@@ -1,20 +1,20 @@
-# @thangdevalone/meet-layout-grid-vue
+# @thangdevalone/meeting-grid-layout-vue
 
-Vue 3 bindings for meet-layout-grid with motion-v animations.
+Vue 3 bindings for meeting-grid-layout with motion-v animations.
 
-> For full documentation, layout modes, and API reference, see the [main README](https://github.com/thangdevalone/meet-layout-grid#readme).
+> For full documentation, layout modes, and API reference, see the [main README](https://github.com/thangdevalone/meeting-grid-layout#readme).
 
 ## Installation
 
 ```bash
-npm install @thangdevalone/meet-layout-grid-vue
+npm install @thangdevalone/meeting-grid-layout-vue
 ```
 
 ## Quick Start
 
 ```vue
 <script setup>
-import { GridContainer, GridItem } from '@thangdevalone/meet-layout-grid-vue'
+import { GridContainer, GridItem } from '@thangdevalone/meeting-grid-layout-vue'
 import { ref } from 'vue'
 
 const participants = ref([

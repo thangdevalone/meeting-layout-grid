@@ -5,7 +5,7 @@ import {
   GridItem,
   FloatingGridItem,
   LayoutMode,
-} from '@thangdevalone/meet-layout-grid-vue'
+} from '@thangdevalone/meeting-grid-layout-vue'
 
 interface Participant {
   id: number

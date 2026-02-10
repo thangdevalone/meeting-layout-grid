@@ -5,7 +5,7 @@ import {
   LayoutMode,
   MeetGridResult,
   SpringPreset,
-} from '@thangdevalone/meet-layout-grid-core'
+} from '@thangdevalone/meeting-grid-layout-core'
 import { animate, motion, useMotionValue } from 'motion-v'
 import {
   computed,

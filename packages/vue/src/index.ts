@@ -29,7 +29,7 @@ export type {
     SpringPreset,
     ItemAspectRatio,
     ContentDimensions,
-} from '@thangdevalone/meet-layout-grid-core'
+} from '@thangdevalone/meeting-grid-layout-core'
 
 export {
     createGrid,
@@ -39,4 +39,4 @@ export {
     getSpringConfig,
     springPresets,
     getAspectRatio,
-} from '@thangdevalone/meet-layout-grid-core'
+} from '@thangdevalone/meeting-grid-layout-core'

@@ -7,7 +7,7 @@ import {
   getSpringConfig,
   ItemAspectRatio,
   ContentDimensions,
-} from '@thangdevalone/meet-layout-grid-core'
+} from '@thangdevalone/meeting-grid-layout-core'
 import { useGridDimensions, useMeetGrid, GridContext, useGridContext } from './hooks'
 
 // ============================================

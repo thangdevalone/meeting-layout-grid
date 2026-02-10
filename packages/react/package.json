@@ -1,7 +1,7 @@
 {
-    "name": "@thangdevalone/meet-layout-grid-react",
+    "name": "@thangdevalone/meeting-grid-layout-react",
     "version": "1.3.1",
-    "description": "React integration for meet-layout-grid with Motion animations",
+    "description": "React integration for meeting-grid-layout with Motion animations",
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -38,17 +38,17 @@
     ],
     "author": "ThangDevAlone",
     "license": "MIT",
-    "homepage": "https://github.com/thangdevalone/meet-layout-grid#readme",
+    "homepage": "https://github.com/thangdevalone/meeting-grid-layout#readme",
     "repository": {
         "type": "git",
-        "url": "https://github.com/thangdevalone/meet-layout-grid"
+        "url": "https://github.com/thangdevalone/meeting-grid-layout"
     },
     "peerDependencies": {
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0"
     },
     "dependencies": {
-        "@thangdevalone/meet-layout-grid-core": "workspace:*",
+        "@thangdevalone/meeting-grid-layout-core": "workspace:*",
         "motion": "^11.15.0"
     },
     "devDependencies": {
